@@ -60,7 +60,7 @@
 
         .filters-content {
             padding: 16px;
-            max-height: 300px;
+            max-height: 400px;
             transition: all 0.4s ease;
             overflow: hidden;
         }
@@ -138,18 +138,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 6px;
-            background: #fafafa;
+            width: 100%;
+            padding: 10px 16px;
+            background: #f0f0f0;
             border: none;
             cursor: pointer;
-            font-size: 11px;
-            color: #888;
+            font-size: 12px;
+            color: #666;
             transition: all 0.2s;
-            border-top: 1px solid #e8e8e8;
+            border-top: 1px solid #e0e0e0;
         }
 
         .filters-toggle:hover {
-            background: #f0f0f0;
+            background: #e8e8e8;
             color: #667eea;
         }
 
@@ -166,10 +167,11 @@
         .filter-summary {
             display: none;
             padding: 8px 16px;
-            font-size: 12px;
+            font-size: 10px;
             color: #666;
             background: #f5f5f5;
             border-bottom: 1px solid #e8e8e8;
+            text-align: center;
         }
 
         .filter-summary.visible {
@@ -182,7 +184,7 @@
             color: white;
             padding: 2px 8px;
             border-radius: 10px;
-            font-size: 11px;
+            font-size: 9px;
             margin-right: 6px;
             margin-bottom: 4px;
         }
@@ -583,12 +585,26 @@
                         </select>
                     </div>
 
+                    <div class="filter-group">
+                        <label class="filter-label">排序方式</label>
+                        <select class="filter-select" id="sortFilter">
+                            <option value="updateTime-desc">更新时间 ↓</option>
+                            <option value="updateTime-asc">更新时间 ↑</option>
+                            <option value="createTime-desc">创建时间 ↓</option>
+                            <option value="createTime-asc">创建时间 ↑</option>
+                            <option value="id-asc">ID ↑</option>
+                            <option value="id-desc">ID ↓</option>
+                            <option value="score-desc">评分 ↓</option>
+                            <option value="score-asc">评分 ↑</option>
+                        </select>
+                    </div>
+
                     <div class="filter-actions">
                         <button class="btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除过滤器</button>
                     </div>
                 </div>
                 <button class="filters-toggle collapsed" id="filtersToggle" onclick="toggleFilters()">
-                    <span id="toggleText">展开过滤器</span>
+                    <span id="toggleText">展开控制面板</span>
                     <span class="arrow">&#9650;</span>
                 </button>
                 <div class="filter-summary visible" id="filterSummary">
@@ -622,13 +638,15 @@
         let currentFilters = {
             type: 'all',
             owner: 'all',
-            score: 'all'
+            score: 'all',
+            sort: 'updateTime-desc'
         };
         let selectedTicketId = null;
         let filtersCollapsed = true;
 
         // Initialize
         function init() {
+            loadFromUrl();
             renderTicketList();
             setupFilterHandlers();
             // Handle URL hash for deep linking on page load
@@ -646,12 +664,12 @@
             if (filtersCollapsed) {
                 content.classList.add('collapsed');
                 toggle.classList.add('collapsed');
-                text.textContent = '展开过滤器';
+                text.textContent = '展开控制面板';
                 summary.classList.add('visible');
             } else {
                 content.classList.remove('collapsed');
                 toggle.classList.remove('collapsed');
-                text.textContent = '收起过滤器';
+                text.textContent = '收起控制面板';
                 summary.classList.remove('visible');
             }
         }
@@ -689,9 +707,9 @@
             return 'low';
         }
 
-        // Filter tickets
+        // Filter and sort tickets
         function getFilteredTickets() {
-            return ticketsData.filter(ticket => {
+            let filtered = ticketsData.filter(ticket => {
                 if (currentFilters.type !== 'all' && ticket.issueType !== currentFilters.type) {
                     return false;
                 }
@@ -706,6 +724,31 @@
                 }
                 return true;
             });
+
+            // Sort
+            const [sortField, sortOrder] = currentFilters.sort.split('-');
+            filtered.sort((a, b) => {
+                let valA, valB;
+                if (sortField === 'id') {
+                    valA = a.processId || '';
+                    valB = b.processId || '';
+                } else if (sortField === 'score') {
+                    valA = a.score || 0;
+                    valB = b.score || 0;
+                } else if (sortField === 'createTime') {
+                    valA = a.createTime || '';
+                    valB = b.createTime || '';
+                } else if (sortField === 'updateTime') {
+                    valA = a.updateTime || '';
+                    valB = b.updateTime || '';
+                }
+
+                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            return filtered;
         }
 
         // Render ticket list
@@ -746,8 +789,8 @@
         function selectTicket(processId, scrollToView = true) {
             selectedTicketId = processId;
 
-            // Update URL hash
-            window.location.hash = processId;
+            // Update URL
+            updateUrl();
 
             // Update selection UI
             document.querySelectorAll('.ticket-item').forEach(el => {
@@ -935,11 +978,58 @@
                 currentFilters.score = e.target.value;
                 updateFilters();
             });
+
+            document.getElementById('sortFilter').addEventListener('change', (e) => {
+                currentFilters.sort = e.target.value;
+                updateFilters();
+            });
         }
 
         // Update filters
         function updateFilters() {
             renderTicketList();
+            updateClearButton();
+            updateFilterSummary();
+            updateUrl();
+        }
+
+        // Update URL with current state
+        function updateUrl() {
+            const params = new URLSearchParams();
+            if (currentFilters.type !== 'all') params.set('type', currentFilters.type);
+            if (currentFilters.owner !== 'all') params.set('owner', currentFilters.owner);
+            if (currentFilters.score !== 'all') params.set('score', currentFilters.score);
+            if (currentFilters.sort !== 'updateTime-desc') params.set('sort', currentFilters.sort);
+
+            let url = window.location.pathname;
+            const queryString = params.toString();
+            if (queryString) url += '?' + queryString;
+            if (selectedTicketId) url += '#' + selectedTicketId;
+
+            window.history.replaceState({}, '', url);
+        }
+
+        // Load state from URL
+        function loadFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+
+            if (params.has('type')) {
+                currentFilters.type = params.get('type');
+                document.getElementById('typeFilter').value = currentFilters.type;
+            }
+            if (params.has('owner')) {
+                currentFilters.owner = params.get('owner');
+                document.getElementById('ownerFilter').value = currentFilters.owner;
+            }
+            if (params.has('score')) {
+                currentFilters.score = params.get('score');
+                document.getElementById('scoreFilter').value = currentFilters.score;
+            }
+            if (params.has('sort')) {
+                currentFilters.sort = params.get('sort');
+                document.getElementById('sortFilter').value = currentFilters.sort;
+            }
+
             updateClearButton();
             updateFilterSummary();
         }
@@ -959,10 +1049,11 @@
 
         // Clear all filters
         function clearFilters() {
-            currentFilters = { type: 'all', owner: 'all', score: 'all' };
+            currentFilters = { type: 'all', owner: 'all', score: 'all', sort: 'updateTime-desc' };
             document.getElementById('typeFilter').value = 'all';
             document.getElementById('ownerFilter').value = 'all';
             document.getElementById('scoreFilter').value = 'all';
+            document.getElementById('sortFilter').value = 'updateTime-desc';
             updateFilters();
         }
 

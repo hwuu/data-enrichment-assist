@@ -29,12 +29,14 @@ class DatabaseInterface(ABC):
 
     def _parse_ticket_row(self, row) -> Dict[str, Any]:
         """Parse a database row into a ticket dictionary."""
+        create_time = row[3]
+        update_time = row[4] if row[4] else create_time  # fallback to createTime
         return {
             'processId': row[0],
             'issueType': row[1],
             'owner': row[2],
-            'createTime': row[3],
-            'updateTime': row[4],
+            'createTime': create_time,
+            'updateTime': update_time,
             'problem': row[5],
             'rootCause': row[6],
             'analysis': json.loads(row[7]) if row[7] else [],

@@ -1,4 +1,5 @@
 """GaussDB Operations Ticket Viewer - FastAPI App"""
+import json
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -11,6 +12,9 @@ app = FastAPI(title="GaussDB Ops Viewer", description="运维工单浏览器")
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+# Configure Jinja2 to not escape unicode in tojson
+templates.env.policies['json.dumps_kwargs'] = {'ensure_ascii': False}
 
 # Initialize database
 db = create_database(DATABASE_CONFIG)
