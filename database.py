@@ -330,9 +330,9 @@ class PostgreSQLDatabase(DatabaseInterface):
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ticket_review (
                 id SERIAL PRIMARY KEY,
-                processId TEXT NOT NULL UNIQUE,
-                createTime TIMESTAMP NOT NULL,
-                updateTime TIMESTAMP NOT NULL,
+                processid TEXT NOT NULL UNIQUE,
+                createtime TIMESTAMP NOT NULL,
+                updatetime TIMESTAMP NOT NULL,
                 conclusion TEXT,
                 content TEXT NOT NULL
             )
@@ -352,8 +352,8 @@ class PostgreSQLDatabase(DatabaseInterface):
             self._ensure_review_table(conn)
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, processId, createTime, updateTime, conclusion, content
-                FROM ticket_review WHERE processId = %s
+                SELECT id, processid, createtime, updatetime, conclusion, content
+                FROM ticket_review WHERE processid = %s
             ''', (process_id,))
             row = cursor.fetchone()
             if row:
@@ -378,20 +378,20 @@ class PostgreSQLDatabase(DatabaseInterface):
             now = datetime.now(timezone.utc)
 
             # Check if review exists
-            cursor.execute('SELECT id, createTime FROM ticket_review WHERE processId = %s', (process_id,))
+            cursor.execute('SELECT id, createtime FROM ticket_review WHERE processid = %s', (process_id,))
             existing = cursor.fetchone()
 
             if existing:
                 # Update existing
                 cursor.execute('''
-                    UPDATE ticket_review SET conclusion = %s, content = %s, updateTime = %s WHERE processId = %s
+                    UPDATE ticket_review SET conclusion = %s, content = %s, updatetime = %s WHERE processid = %s
                 ''', (conclusion, content, now, process_id))
                 create_time = existing[1]
                 review_id = existing[0]
             else:
                 # Insert new
                 cursor.execute('''
-                    INSERT INTO ticket_review (processId, createTime, updateTime, conclusion, content)
+                    INSERT INTO ticket_review (processid, createtime, updatetime, conclusion, content)
                     VALUES (%s, %s, %s, %s, %s) RETURNING id
                 ''', (process_id, now, now, conclusion, content))
                 create_time = now
