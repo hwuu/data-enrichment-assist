@@ -251,6 +251,10 @@
             color: #bbb;
         }
 
+        .review-icon.expired {
+            color: #9c27b0;
+        }
+
         .ticket-type {
             display: inline-block;
             padding: 2px 8px;
@@ -739,6 +743,7 @@
                             <option value="通过">通过</option>
                             <option value="不通过">不通过</option>
                             <option value="待定">待定</option>
+                            <option value="expired">过期</option>
                             <option value="pending">未审核</option>
                         </select>
                     </div>
@@ -856,7 +861,7 @@
                 tags.push(`得分: ${scoreLabels[currentFilters.score]}`);
             }
             if (currentFilters.review !== 'all') {
-                const reviewLabels = { '通过': '通过', '不通过': '不通过', '待定': '待定', 'pending': '未审核' };
+                const reviewLabels = { '通过': '通过', '不通过': '不通过', '待定': '待定', 'expired': '过期', 'pending': '未审核' };
                 tags.push(`审核: ${reviewLabels[currentFilters.review]}`);
             }
 
@@ -894,9 +899,12 @@
                     if (currentFilters.review === 'pending') {
                         // 未审核: no review exists
                         if (ticket.hasReview) return false;
+                    } else if (currentFilters.review === 'expired') {
+                        // 过期: has review but expired
+                        if (!ticket.reviewExpired) return false;
                     } else {
-                        // 通过/不通过/待定: match conclusion
-                        if (ticket.conclusion !== currentFilters.review) return false;
+                        // 通过/不通过/待定: match conclusion (and not expired)
+                        if (ticket.reviewExpired || ticket.conclusion !== currentFilters.review) return false;
                     }
                 }
                 return true;
@@ -931,6 +939,7 @@
         // Get review status icon
         function getReviewIcon(ticket) {
             if (!ticket.hasReview) return '<span class="review-icon none">○</span>';
+            if (ticket.reviewExpired) return '<span class="review-icon expired">⚠</span>';
             switch (ticket.conclusion) {
                 case '通过': return '<span class="review-icon pass">✓</span>';
                 case '不通过': return '<span class="review-icon fail">✗</span>';
@@ -1100,6 +1109,7 @@
                 if (ticket) {
                     ticket.hasReview = true;
                     ticket.conclusion = review.conclusion;
+                    ticket.reviewExpired = false;
                     renderTicketList();
                 }
 

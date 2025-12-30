@@ -46,6 +46,15 @@ class DatabaseInterface(ABC):
         """Parse a database row into a ticket summary dictionary."""
         create_time = row[3]
         update_time = row[4] if row[4] else create_time
+        has_review = bool(row[7]) if len(row) > 7 else False
+        conclusion = row[8] if len(row) > 8 else None
+        review_time = row[9] if len(row) > 9 else None
+
+        # Check if review is expired (review time < ticket update time)
+        review_expired = False
+        if has_review and review_time and update_time:
+            review_expired = str(review_time) < str(update_time)
+
         return {
             'processId': row[0],
             'issueType': row[1],
@@ -54,8 +63,9 @@ class DatabaseInterface(ABC):
             'updateTime': update_time,
             'problem': row[5],
             'score': row[6],
-            'hasReview': bool(row[7]) if len(row) > 7 else False,
-            'conclusion': row[8] if len(row) > 8 else None
+            'hasReview': has_review,
+            'conclusion': conclusion,
+            'reviewExpired': review_expired
         }
 
     def _parse_ticket_row(self, row) -> Dict[str, Any]:
@@ -129,7 +139,7 @@ class SQLiteDatabase(DatabaseInterface):
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT T2."流程ID", C."issueType", C."owner", T2.create_time, T2.update_time,
-                       T2."问题现象", T2."得分", R.id, R.conclusion
+                       T2."问题现象", T2."得分", R.id, R.conclusion, R.updateTime
                 FROM operations_kb as T2
                 JOIN ticket_classification_2512 as C ON T2."流程ID" = C."processId"
                 LEFT JOIN ticket_review as R ON T2."流程ID" = R.processId
@@ -280,7 +290,7 @@ class PostgreSQLDatabase(DatabaseInterface):
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT T2."流程ID", C."issueType", C."owner", T2.create_time, T2.update_time,
-                       T2."问题现象", T2."得分", R.id, R.conclusion
+                       T2."问题现象", T2."得分", R.id, R.conclusion, R.updatetime
                 FROM operations_kb as T2
                 JOIN ticket_classification_2512 as C ON T2."流程ID" = C."processId"
                 LEFT JOIN ticket_review as R ON T2."流程ID" = R.processid
