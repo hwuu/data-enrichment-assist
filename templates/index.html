@@ -1095,6 +1095,14 @@
                 document.getElementById('reviewCreateTime').textContent = formatUtcToLocal(review.createTime);
                 document.getElementById('reviewUpdateTime').textContent = formatUtcToLocal(review.updateTime);
 
+                // Update ticketsData and refresh list
+                const ticket = ticketsData.find(t => t.processId === currentReviewProcessId);
+                if (ticket) {
+                    ticket.hasReview = true;
+                    ticket.conclusion = review.conclusion;
+                    renderTicketList();
+                }
+
                 updateReviewButtons();
                 showReviewBanner('保存成功', 'success');
             } catch (error) {
