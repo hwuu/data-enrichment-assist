@@ -38,7 +38,7 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
+    def save_ticket_review(self, process_id: str, conclusion: str, content: str) -> Dict[str, Any]:
         """Save or update review for a ticket. Returns the saved review."""
         pass
 
@@ -54,7 +54,8 @@ class DatabaseInterface(ABC):
             'updateTime': update_time,
             'problem': row[5],
             'score': row[6],
-            'hasReview': bool(row[7]) if len(row) > 7 else False
+            'hasReview': bool(row[7]) if len(row) > 7 else False,
+            'conclusion': row[8] if len(row) > 8 else None
         }
 
     def _parse_ticket_row(self, row) -> Dict[str, Any]:
@@ -110,9 +111,15 @@ class SQLiteDatabase(DatabaseInterface):
                 processId TEXT NOT NULL UNIQUE,
                 createTime TEXT NOT NULL,
                 updateTime TEXT NOT NULL,
+                conclusion TEXT,
                 content TEXT NOT NULL
             )
         ''')
+        # Add conclusion column if not exists (for existing tables)
+        cursor.execute("PRAGMA table_info(ticket_review)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'conclusion' not in columns:
+            cursor.execute('ALTER TABLE ticket_review ADD COLUMN conclusion TEXT')
         conn.commit()
 
     def get_ticket_list(self) -> List[Dict[str, Any]]:
@@ -122,7 +129,7 @@ class SQLiteDatabase(DatabaseInterface):
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT T2."流程ID", C."issueType", C."owner", T2.create_time, T2.update_time,
-                       T2."问题现象", T2."得分", R.id
+                       T2."问题现象", T2."得分", R.id, R.conclusion
                 FROM operations_kb as T2
                 JOIN ticket_classification_2512 as C ON T2."流程ID" = C."processId"
                 LEFT JOIN ticket_review as R ON T2."流程ID" = R.processId
@@ -172,7 +179,7 @@ class SQLiteDatabase(DatabaseInterface):
             self._ensure_review_table(conn)
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, processId, createTime, updateTime, content
+                SELECT id, processId, createTime, updateTime, conclusion, content
                 FROM ticket_review WHERE processId = ?
             ''', (process_id,))
             row = cursor.fetchone()
@@ -182,13 +189,14 @@ class SQLiteDatabase(DatabaseInterface):
                     'processId': row[1],
                     'createTime': row[2],
                     'updateTime': row[3],
-                    'content': row[4]
+                    'conclusion': row[4],
+                    'content': row[5]
                 }
             return None
         finally:
             conn.close()
 
-    def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
+    def save_ticket_review(self, process_id: str, conclusion: str, content: str) -> Dict[str, Any]:
         from datetime import datetime, timezone
         conn = self._get_connection()
         try:
@@ -203,16 +211,16 @@ class SQLiteDatabase(DatabaseInterface):
             if existing:
                 # Update existing
                 cursor.execute('''
-                    UPDATE ticket_review SET content = ?, updateTime = ? WHERE processId = ?
-                ''', (content, now, process_id))
+                    UPDATE ticket_review SET conclusion = ?, content = ?, updateTime = ? WHERE processId = ?
+                ''', (conclusion, content, now, process_id))
                 create_time = existing[1]
                 review_id = existing[0]
             else:
                 # Insert new
                 cursor.execute('''
-                    INSERT INTO ticket_review (processId, createTime, updateTime, content)
-                    VALUES (?, ?, ?, ?)
-                ''', (process_id, now, now, content))
+                    INSERT INTO ticket_review (processId, createTime, updateTime, conclusion, content)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (process_id, now, now, conclusion, content))
                 create_time = now
                 review_id = cursor.lastrowid
 
@@ -222,6 +230,7 @@ class SQLiteDatabase(DatabaseInterface):
                 'processId': process_id,
                 'createTime': create_time,
                 'updateTime': now,
+                'conclusion': conclusion,
                 'content': content
             }
         finally:
@@ -271,10 +280,10 @@ class PostgreSQLDatabase(DatabaseInterface):
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT T2."流程ID", C."issueType", C."owner", T2.create_time, T2.update_time,
-                       T2."问题现象", T2."得分", R.id
+                       T2."问题现象", T2."得分", R.id, R.conclusion
                 FROM operations_kb as T2
                 JOIN ticket_classification_2512 as C ON T2."流程ID" = C."processId"
-                LEFT JOIN ticket_review as R ON T2."流程ID" = R.processId
+                LEFT JOIN ticket_review as R ON T2."流程ID" = R."processId"
                 ORDER BY T2.update_time DESC, T2.create_time DESC
             ''')
             rows = cursor.fetchall()
@@ -324,8 +333,16 @@ class PostgreSQLDatabase(DatabaseInterface):
                 processId TEXT NOT NULL UNIQUE,
                 createTime TIMESTAMP NOT NULL,
                 updateTime TIMESTAMP NOT NULL,
+                conclusion TEXT,
                 content TEXT NOT NULL
             )
+        ''')
+        # Add conclusion column if not exists (for existing tables)
+        cursor.execute('''
+            DO $$ BEGIN
+                ALTER TABLE ticket_review ADD COLUMN conclusion TEXT;
+            EXCEPTION WHEN duplicate_column THEN NULL;
+            END $$;
         ''')
         conn.commit()
 
@@ -335,7 +352,7 @@ class PostgreSQLDatabase(DatabaseInterface):
             self._ensure_review_table(conn)
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, processId, createTime, updateTime, content
+                SELECT id, processId, createTime, updateTime, conclusion, content
                 FROM ticket_review WHERE processId = %s
             ''', (process_id,))
             row = cursor.fetchone()
@@ -345,13 +362,14 @@ class PostgreSQLDatabase(DatabaseInterface):
                     'processId': row[1],
                     'createTime': row[2].strftime('%Y-%m-%dT%H:%M:%SZ') if row[2] else None,
                     'updateTime': row[3].strftime('%Y-%m-%dT%H:%M:%SZ') if row[3] else None,
-                    'content': row[4]
+                    'conclusion': row[4],
+                    'content': row[5]
                 }
             return None
         finally:
             conn.close()
 
-    def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
+    def save_ticket_review(self, process_id: str, conclusion: str, content: str) -> Dict[str, Any]:
         from datetime import datetime, timezone
         conn = self._get_connection()
         try:
@@ -366,16 +384,16 @@ class PostgreSQLDatabase(DatabaseInterface):
             if existing:
                 # Update existing
                 cursor.execute('''
-                    UPDATE ticket_review SET content = %s, updateTime = %s WHERE processId = %s
-                ''', (content, now, process_id))
+                    UPDATE ticket_review SET conclusion = %s, content = %s, updateTime = %s WHERE processId = %s
+                ''', (conclusion, content, now, process_id))
                 create_time = existing[1]
                 review_id = existing[0]
             else:
                 # Insert new
                 cursor.execute('''
-                    INSERT INTO ticket_review (processId, createTime, updateTime, content)
-                    VALUES (%s, %s, %s, %s) RETURNING id
-                ''', (process_id, now, now, content))
+                    INSERT INTO ticket_review (processId, createTime, updateTime, conclusion, content)
+                    VALUES (%s, %s, %s, %s, %s) RETURNING id
+                ''', (process_id, now, now, conclusion, content))
                 create_time = now
                 review_id = cursor.fetchone()[0]
 
@@ -385,6 +403,7 @@ class PostgreSQLDatabase(DatabaseInterface):
                 'processId': process_id,
                 'createTime': create_time.strftime('%Y-%m-%dT%H:%M:%SZ') if hasattr(create_time, 'strftime') else create_time,
                 'updateTime': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'conclusion': conclusion,
                 'content': content
             }
         finally:

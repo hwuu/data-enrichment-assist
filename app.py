@@ -61,15 +61,16 @@ async def api_get_review(process_id: str):
     review = db.get_ticket_review(process_id)
     if review:
         return review
-    return {"processId": process_id, "content": "", "createTime": None, "updateTime": None}
+    return {"processId": process_id, "conclusion": None, "content": "", "createTime": None, "updateTime": None}
 
 
 @app.post("/api/tickets/{process_id}/review")
 async def api_save_review(process_id: str, request: Request):
     """Save review for a ticket."""
     body = await request.json()
+    conclusion = body.get("conclusion", "")
     content = body.get("content", "")
-    review = db.save_ticket_review(process_id, content)
+    review = db.save_ticket_review(process_id, conclusion, content)
     return review
 
 
