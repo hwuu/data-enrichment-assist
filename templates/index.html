@@ -344,13 +344,13 @@
         }
 
         .score-badge {
-            width: 48px;
-            height: 48px;
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
             flex-shrink: 0;
         }
@@ -374,17 +374,17 @@
         }
 
         .score-detail {
-            font-size: 12px;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
         .score-detail .diff {
             color: #858585;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
 
         .score-detail .reason {
             color: #d4d4d4;
-            max-width: 300px;
         }
 
         .detail-meta {
@@ -877,7 +877,7 @@
                             <div class="score-badge ${scoreClass}">${ticket.score}</div>
                             <div class="score-detail">
                                 <div class="diff">diff_score: ${ticket.diffScore}</div>
-                                <div class="reason">${ticket.reason}</div>
+                                <div class="reason">${formatText(ticket.reason)}</div>
                             </div>
                         </div>
                     </div>
@@ -887,7 +887,7 @@
                 <div class="detail-section">
                     <div class="section-title">问题描述</div>
                     <div class="section-content">
-                        <div class="info-text">${ticket.problem}</div>
+                        <div class="info-text">${formatText(ticket.problem)}</div>
                     </div>
                 </div>
 
@@ -895,7 +895,7 @@
                 <div class="detail-section">
                     <div class="section-title">问题根因</div>
                     <div class="section-content">
-                        <div class="info-text">${ticket.rootCause}</div>
+                        <div class="info-text">${formatText(ticket.rootCause)}</div>
                     </div>
                 </div>
 
@@ -911,11 +911,11 @@
                     <li class="step-item">
                         <div class="step-title">
                             <span class="step-number">${idx + 1}</span>
-                            ${step['操作']}
+                            ${formatText(step['操作'])}
                         </div>
                         <div class="step-detail">
-                            <p><span class="label">现象:</span> ${step['现象']}</p>
-                            <p><span class="label">分析:</span> ${step['现象分析']}</p>
+                            <p><span class="label">现象:</span> ${formatText(step['现象'])}</p>
+                            <p><span class="label">分析:</span> ${formatText(step['现象分析'])}</p>
                         </div>
                     </li>
                 `;
@@ -938,9 +938,9 @@
                     <li class="solution-item">
                         <div class="step-title">
                             <span class="step-number">${idx + 1}</span>
-                            ${step['描述']}
+                            ${formatText(step['描述'])}
                         </div>
-                        <div class="command-block">${escapeHtml(step['具体命令'])}</div>
+                        <div class="command-block">${formatText(step['具体命令'])}</div>
                     </li>
                 `;
             });
@@ -960,6 +960,12 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Format reason text: escape HTML and convert literal \n to <br>
+        function formatText(text) {
+            if (!text) return '';
+            return escapeHtml(text).replace(/\\n/g, '<br>');
         }
 
         // Setup filter handlers
