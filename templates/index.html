@@ -1082,7 +1082,7 @@
                 showReviewBanner('请选择审核结论', 'error');
                 return;
             }
-            if (!content) {
+            if (!content && conclusion !== '通过') {
                 showReviewBanner('请填写具体意见', 'error');
                 return;
             }
