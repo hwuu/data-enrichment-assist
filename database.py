@@ -283,7 +283,7 @@ class PostgreSQLDatabase(DatabaseInterface):
                        T2."问题现象", T2."得分", R.id, R.conclusion
                 FROM operations_kb as T2
                 JOIN ticket_classification_2512 as C ON T2."流程ID" = C."processId"
-                LEFT JOIN ticket_review as R ON T2."流程ID" = R."processId"
+                LEFT JOIN ticket_review as R ON T2."流程ID" = R.processid
                 ORDER BY T2.update_time DESC, T2.create_time DESC
             ''')
             rows = cursor.fetchall()
