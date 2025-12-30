@@ -230,6 +230,27 @@
             color: #667eea;
         }
 
+        .review-icon {
+            margin-right: 5px;
+            font-size: 12px;
+        }
+
+        .review-icon.pass {
+            color: #4caf50;
+        }
+
+        .review-icon.fail {
+            color: #f44336;
+        }
+
+        .review-icon.pending {
+            color: #ff9800;
+        }
+
+        .review-icon.none {
+            color: #bbb;
+        }
+
         .ticket-type {
             display: inline-block;
             padding: 2px 8px;
@@ -907,6 +928,17 @@
             return filtered;
         }
 
+        // Get review status icon
+        function getReviewIcon(ticket) {
+            if (!ticket.hasReview) return '<span class="review-icon none">○</span>';
+            switch (ticket.conclusion) {
+                case '通过': return '<span class="review-icon pass">✓</span>';
+                case '不通过': return '<span class="review-icon fail">✗</span>';
+                case '待定': return '<span class="review-icon pending">◐</span>';
+                default: return '<span class="review-icon none">○</span>';
+            }
+        }
+
         // Render ticket list
         function renderTicketList() {
             const listEl = document.getElementById('ticketList');
@@ -926,7 +958,7 @@
                          onclick="selectTicket('${ticket.processId}')"
                          data-id="${ticket.processId}">
                         <div class="ticket-header">
-                            <span class="ticket-id">${ticket.processId}</span>
+                            ${getReviewIcon(ticket)}<span class="ticket-id">${ticket.processId}</span>
                             <span class="ticket-type">${ticket.issueType}</span>
                         </div>
                         <div class="ticket-problem">${ticket.problem}</div>
