@@ -962,10 +962,10 @@
             return div.innerHTML;
         }
 
-        // Format reason text: escape HTML and convert literal \n to <br>
+        // Format text: escape HTML and convert newlines to <br>
         function formatText(text) {
             if (!text) return '';
-            return escapeHtml(text).replace(/\\n/g, '<br>');
+            return escapeHtml(text).replace(/\n/g, '<br>');
         }
 
         // Setup filter handlers
