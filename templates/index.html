@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GaussDB 运维工单浏览器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Left Panel - Logo, Filters, and List */
+        .left-panel {
+            width: 320px;
+            min-width: 320px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        /* Logo Section */
+        .logo-section {
+            padding: 16px;
+            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .logo-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* Filters Section */
+        .filters-section {
+            border-bottom: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .filters-content {
+            padding: 16px;
+            max-height: 300px;
+            transition: all 0.4s ease;
+            overflow: hidden;
+        }
+
+        .filters-content.collapsed {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        .filter-group {
+            margin-bottom: 12px;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-select:hover {
+            border-color: #667eea;
+        }
+
+        .filter-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-clear {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            background: white;
+            color: #dc3545;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-clear:hover:not(:disabled) {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-clear:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Toggle Button */
+        .filters-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            background: #fafafa;
+            border: none;
+            cursor: pointer;
+            font-size: 11px;
+            color: #888;
+            transition: all 0.2s;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .filters-toggle:hover {
+            background: #f0f0f0;
+            color: #667eea;
+        }
+
+        .filters-toggle .arrow {
+            margin-left: 4px;
+            transition: transform 0.4s;
+        }
+
+        .filters-toggle.collapsed .arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Filter Summary */
+        .filter-summary {
+            display: none;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #666;
+            background: #f5f5f5;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .filter-summary.visible {
+            display: block;
+        }
+
+        .filter-summary .filter-tag {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .filter-summary .no-filter {
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Ticket List */
+        .ticket-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .ticket-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .ticket-item:hover {
+            background: #f9f9f9;
+        }
+
+        .ticket-item.selected {
+            background: #e8eaf6;
+            border-left: 4px solid #667eea;
+        }
+
+        .ticket-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .ticket-id {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .ticket-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .ticket-type.slow-sql {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .ticket-type.backup {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .ticket-type.log {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .ticket-problem {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .ticket-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .ticket-score {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .score-value {
+            font-weight: 600;
+        }
+
+        .score-value.high {
+            color: #2e7d32;
+        }
+
+        .score-value.medium {
+            color: #e65100;
+        }
+
+        .score-value.low {
+            color: #c62828;
+        }
+
+        /* Right Panel - Detail View */
+        .right-panel {
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Detail Header with Score */
+        .detail-header {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #3e3e3e;
+        }
+
+        .detail-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .detail-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .detail-id {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #9cdcfe;
+        }
+
+        .detail-type {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Score Badge in Header */
+        .header-score {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #252526;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .score-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .score-badge.high {
+            background: rgba(46, 125, 50, 0.2);
+            border: 2px solid #4caf50;
+            color: #4caf50;
+        }
+
+        .score-badge.medium {
+            background: rgba(230, 81, 0, 0.2);
+            border: 2px solid #ff9800;
+            color: #ff9800;
+        }
+
+        .score-badge.low {
+            background: rgba(198, 40, 40, 0.2);
+            border: 2px solid #f44336;
+            color: #f44336;
+        }
+
+        .score-detail {
+            font-size: 12px;
+        }
+
+        .score-detail .diff {
+            color: #858585;
+            margin-bottom: 2px;
+        }
+
+        .score-detail .reason {
+            color: #d4d4d4;
+            max-width: 300px;
+        }
+
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 13px;
+            color: #858585;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .meta-label {
+            color: #9cdcfe;
+        }
+
+        /* Detail Sections */
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4ec9b0;
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: #2d2d2d;
+            border-left: 4px solid #4ec9b0;
+        }
+
+        .section-content {
+            padding: 0 12px;
+        }
+
+        .info-text {
+            background: #252526;
+            padding: 14px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #d4d4d4;
+            border-left: 4px solid #569cd6;
+        }
+
+        /* Analysis Steps */
+        .step-list {
+            list-style: none;
+        }
+
+        .step-item {
+            background: #252526;
+            padding: 14px 16px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border-left: 3px solid #dcdcaa;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            background: #dcdcaa;
+            color: #1e1e1e;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step-title {
+            color: #dcdcaa;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .step-detail {
+            margin-left: 34px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .step-detail .label {
+            color: #9cdcfe;
+        }
+
+        /* Solution Steps */
+        .solution-item {
+            background: #252526;
+            padding: 14px 16px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border-left: 3px solid #6a9955;
+        }
+
+        .solution-item .step-number {
+            background: #6a9955;
+        }
+
+        .solution-item .step-title {
+            color: #6a9955;
+        }
+
+        .command-block {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            margin-left: 34px;
+            font-family: 'Courier New', Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #ce9178;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .right-panel::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 12px 16px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <!-- Logo -->
+            <div class="logo-section">
+                <div class="logo-title">GaussDB Ops Viewer</div>
+                <div class="logo-subtitle">运维工单浏览器</div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <div class="filters-content collapsed" id="filtersContent">
+                    <div class="filter-group">
+                        <label class="filter-label">问题类型</label>
+                        <select class="filter-select" id="typeFilter">
+                            <option value="all">全部</option>
+                            {% for t in issue_types %}
+                            <option value="{{ t }}">{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">负责人</label>
+                        <select class="filter-select" id="ownerFilter">
+                            <option value="all">全部</option>
+                            {% for o in owners %}
+                            <option value="{{ o }}">{{ o }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">得分范围</label>
+                        <select class="filter-select" id="scoreFilter">
+                            <option value="all">全部</option>
+                            <option value="high">高分 (8-10)</option>
+                            <option value="medium">中等 (6-8)</option>
+                            <option value="low">低分 (0-6)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button class="btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除过滤器</button>
+                    </div>
+                </div>
+                <button class="filters-toggle collapsed" id="filtersToggle" onclick="toggleFilters()">
+                    <span id="toggleText">展开过滤器</span>
+                    <span class="arrow">&#9650;</span>
+                </button>
+                <div class="filter-summary visible" id="filterSummary">
+                    <span class="no-filter">共 {{ tickets|length }} 条工单</span>
+                </div>
+            </div>
+
+            <!-- Ticket List -->
+            <div class="ticket-list" id="ticketList">
+                <!-- Tickets will be rendered here -->
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                GaussDB Operations Knowledge Base
+            </div>
+        </div>
+
+        <!-- Right Panel - Detail View -->
+        <div class="right-panel" id="detailPanel">
+            <div class="empty-state">
+                <span>&#x1F448; 从列表中选择一个工单查看详情</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Ticket data from Flask
+        const ticketsData = {{ tickets | tojson }};
+
+        let currentFilters = {
+            type: 'all',
+            owner: 'all',
+            score: 'all'
+        };
+        let selectedTicketId = null;
+        let filtersCollapsed = true;
+
+        // Initialize
+        function init() {
+            renderTicketList();
+            setupFilterHandlers();
+            // Handle URL hash for deep linking on page load
+            handleUrlHash();
+        }
+
+        // Toggle filters
+        function toggleFilters() {
+            filtersCollapsed = !filtersCollapsed;
+            const content = document.getElementById('filtersContent');
+            const toggle = document.getElementById('filtersToggle');
+            const text = document.getElementById('toggleText');
+            const summary = document.getElementById('filterSummary');
+
+            if (filtersCollapsed) {
+                content.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+                text.textContent = '展开过滤器';
+                summary.classList.add('visible');
+            } else {
+                content.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+                text.textContent = '收起过滤器';
+                summary.classList.remove('visible');
+            }
+        }
+
+        // Update filter summary display
+        function updateFilterSummary() {
+            const summary = document.getElementById('filterSummary');
+            const tags = [];
+            const filteredCount = getFilteredTickets().length;
+            const totalCount = ticketsData.length;
+
+            if (currentFilters.type !== 'all') {
+                tags.push(`类型: ${currentFilters.type}`);
+            }
+            if (currentFilters.owner !== 'all') {
+                tags.push(`负责人: ${currentFilters.owner}`);
+            }
+            if (currentFilters.score !== 'all') {
+                const scoreLabels = { high: '高分', medium: '中等', low: '低分' };
+                tags.push(`得分: ${scoreLabels[currentFilters.score]}`);
+            }
+
+            if (tags.length === 0) {
+                summary.innerHTML = `<span class="no-filter">共 ${totalCount} 条工单</span>`;
+            } else {
+                summary.innerHTML = tags.map(t => `<span class="filter-tag">${t}</span>`).join('') +
+                    `<span style="margin-left: 8px; color: #666;">(${filteredCount}/${totalCount})</span>`;
+            }
+        }
+
+        // Get ticket type class
+        function getTypeClass(issueType) {
+            if (issueType === '慢SQL') return 'slow-sql';
+            if (issueType === '备份恢复') return 'backup';
+            if (issueType === '日志管理') return 'log';
+            return '';
+        }
+
+        // Get score class
+        function getScoreClass(score) {
+            if (score >= 8) return 'high';
+            if (score >= 6) return 'medium';
+            return 'low';
+        }
+
+        // Filter tickets
+        function getFilteredTickets() {
+            return ticketsData.filter(ticket => {
+                if (currentFilters.type !== 'all' && ticket.issueType !== currentFilters.type) {
+                    return false;
+                }
+                if (currentFilters.owner !== 'all' && ticket.owner !== currentFilters.owner) {
+                    return false;
+                }
+                if (currentFilters.score !== 'all') {
+                    const score = ticket.score;
+                    if (currentFilters.score === 'high' && score < 8) return false;
+                    if (currentFilters.score === 'medium' && (score < 6 || score >= 8)) return false;
+                    if (currentFilters.score === 'low' && score >= 6) return false;
+                }
+                return true;
+            });
+        }
+
+        // Render ticket list
+        function renderTicketList() {
+            const listEl = document.getElementById('ticketList');
+            const filtered = getFilteredTickets();
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">未找到工单</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(ticket => {
+                const typeClass = getTypeClass(ticket.issueType);
+                const scoreClass = getScoreClass(ticket.score);
+                const isSelected = ticket.processId === selectedTicketId;
+
+                return `
+                    <div class="ticket-item ${isSelected ? 'selected' : ''}"
+                         onclick="selectTicket('${ticket.processId}')"
+                         data-id="${ticket.processId}">
+                        <div class="ticket-header">
+                            <span class="ticket-id">${ticket.processId}</span>
+                            <span class="ticket-type ${typeClass}">${ticket.issueType}</span>
+                        </div>
+                        <div class="ticket-problem">${ticket.problem}</div>
+                        <div class="ticket-meta">
+                            <span>${ticket.owner} / ${ticket.updateTime.split(' ')[0]}</span>
+                            <span class="ticket-score">
+                                得分: <span class="score-value ${scoreClass}">${ticket.score}</span>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Select ticket
+        function selectTicket(processId, scrollToView = true) {
+            selectedTicketId = processId;
+
+            // Update URL hash
+            window.location.hash = processId;
+
+            // Update selection UI
+            document.querySelectorAll('.ticket-item').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            const selectedItem = document.querySelector(`.ticket-item[data-id="${processId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+
+                // Scroll to visible area if needed
+                if (scrollToView) {
+                    const listPane = document.getElementById('ticketList');
+                    const itemRect = selectedItem.getBoundingClientRect();
+                    const paneRect = listPane.getBoundingClientRect();
+
+                    // Check if item is in visible range
+                    const isVisible = itemRect.top >= paneRect.top && itemRect.bottom <= paneRect.bottom;
+
+                    if (!isVisible) {
+                        selectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                }
+            }
+
+            // Find ticket data
+            const ticket = ticketsData.find(t => t.processId === processId);
+            if (ticket) {
+                renderDetail(ticket);
+            }
+        }
+
+        // Handle URL hash for deep linking
+        function handleUrlHash() {
+            const hash = window.location.hash.slice(1); // Remove # symbol
+            if (hash) {
+                // Find matching ticket
+                const ticket = ticketsData.find(t => t.processId === hash);
+                if (ticket) {
+                    selectTicket(hash, true);
+                }
+            }
+        }
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', () => {
+            handleUrlHash();
+        });
+
+        // Render detail view
+        function renderDetail(ticket) {
+            const panel = document.getElementById('detailPanel');
+            const typeClass = getTypeClass(ticket.issueType);
+            const scoreClass = getScoreClass(ticket.score);
+
+            let html = `
+                <div class="detail-header">
+                    <div class="detail-title-row">
+                        <div class="detail-title">
+                            <span class="detail-id">${ticket.processId}</span>
+                            <span class="detail-type ticket-type ${typeClass}">${ticket.issueType}</span>
+                        </div>
+                        <div class="header-score">
+                            <div class="score-badge ${scoreClass}">${ticket.score}</div>
+                            <div class="score-detail">
+                                <div class="diff">diff_score: ${ticket.diffScore}</div>
+                                <div class="reason">${ticket.reason}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">负责人:</span>
+                            <span>${ticket.owner}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">创建时间:</span>
+                            <span>${ticket.createTime}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">更新时间:</span>
+                            <span>${ticket.updateTime}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 1: 问题描述 -->
+                <div class="detail-section">
+                    <div class="section-title">问题描述</div>
+                    <div class="section-content">
+                        <div class="info-text">${ticket.problem}</div>
+                    </div>
+                </div>
+
+                <!-- Section 2: 问题根因 -->
+                <div class="detail-section">
+                    <div class="section-title">问题根因</div>
+                    <div class="section-content">
+                        <div class="info-text">${ticket.rootCause}</div>
+                    </div>
+                </div>
+
+                <!-- Section 3: 分析过程 -->
+                <div class="detail-section">
+                    <div class="section-title">分析过程</div>
+                    <div class="section-content">
+                        <ul class="step-list">
+            `;
+
+            ticket.analysis.forEach((step, idx) => {
+                html += `
+                    <li class="step-item">
+                        <div class="step-title">
+                            <span class="step-number">${idx + 1}</span>
+                            ${step['操作']}
+                        </div>
+                        <div class="step-detail">
+                            <p><span class="label">现象:</span> ${step['现象']}</p>
+                            <p><span class="label">分析:</span> ${step['现象分析']}</p>
+                        </div>
+                    </li>
+                `;
+            });
+
+            html += `
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Section 4: 解决方案 -->
+                <div class="detail-section">
+                    <div class="section-title">解决方案</div>
+                    <div class="section-content">
+                        <ul class="step-list">
+            `;
+
+            ticket.solution.forEach((step, idx) => {
+                html += `
+                    <li class="solution-item">
+                        <div class="step-title">
+                            <span class="step-number">${idx + 1}</span>
+                            ${step['描述']}
+                        </div>
+                        <div class="command-block">${escapeHtml(step['具体命令'])}</div>
+                    </li>
+                `;
+            });
+
+            html += `
+                        </ul>
+                    </div>
+                </div>
+            `;
+
+            panel.innerHTML = html;
+            panel.scrollTop = 0;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Setup filter handlers
+        function setupFilterHandlers() {
+            document.getElementById('typeFilter').addEventListener('change', (e) => {
+                currentFilters.type = e.target.value;
+                updateFilters();
+            });
+
+            document.getElementById('ownerFilter').addEventListener('change', (e) => {
+                currentFilters.owner = e.target.value;
+                updateFilters();
+            });
+
+            document.getElementById('scoreFilter').addEventListener('change', (e) => {
+                currentFilters.score = e.target.value;
+                updateFilters();
+            });
+        }
+
+        // Update filters
+        function updateFilters() {
+            renderTicketList();
+            updateClearButton();
+            updateFilterSummary();
+        }
+
+        // Check if any filter is active
+        function hasActiveFilters() {
+            return currentFilters.type !== 'all' ||
+                   currentFilters.owner !== 'all' ||
+                   currentFilters.score !== 'all';
+        }
+
+        // Update clear button state
+        function updateClearButton() {
+            const btn = document.getElementById('clearBtn');
+            btn.disabled = !hasActiveFilters();
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            currentFilters = { type: 'all', owner: 'all', score: 'all' };
+            document.getElementById('typeFilter').value = 'all';
+            document.getElementById('ownerFilter').value = 'all';
+            document.getElementById('scoreFilter').value = 'all';
+            updateFilters();
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
