@@ -22,8 +22,8 @@ db = create_database(DATABASE_CONFIG)
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """Main page."""
-    tickets = db.get_all_tickets()
+    """Main page - loads only ticket summaries."""
+    tickets = db.get_ticket_list()
 
     # Extract unique values for filters
     issue_types = sorted(set(t['issueType'] for t in tickets))
@@ -53,6 +53,24 @@ async def api_ticket_detail(process_id: str):
     if ticket:
         return ticket
     return {"error": "not found"}
+
+
+@app.get("/api/tickets/{process_id}/review")
+async def api_get_review(process_id: str):
+    """Get review for a ticket."""
+    review = db.get_ticket_review(process_id)
+    if review:
+        return review
+    return {"processId": process_id, "content": "", "createTime": None, "updateTime": None}
+
+
+@app.post("/api/tickets/{process_id}/review")
+async def api_save_review(process_id: str, request: Request):
+    """Save review for a ticket."""
+    body = await request.json()
+    content = body.get("content", "")
+    review = db.save_ticket_review(process_id, content)
+    return review
 
 
 if __name__ == "__main__":

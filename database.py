@@ -18,8 +18,13 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
+    def get_ticket_list(self) -> List[Dict[str, Any]]:
+        """Get ticket list with summary info only."""
+        pass
+
+    @abstractmethod
     def get_all_tickets(self) -> List[Dict[str, Any]]:
-        """Get all tickets with classification info."""
+        """Get all tickets with full details."""
         pass
 
     @abstractmethod
@@ -27,10 +32,35 @@ class DatabaseInterface(ABC):
         """Get a single ticket by process ID."""
         pass
 
-    def _parse_ticket_row(self, row) -> Dict[str, Any]:
-        """Parse a database row into a ticket dictionary."""
+    @abstractmethod
+    def get_ticket_review(self, process_id: str) -> Optional[Dict[str, Any]]:
+        """Get review for a ticket."""
+        pass
+
+    @abstractmethod
+    def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
+        """Save or update review for a ticket. Returns the saved review."""
+        pass
+
+    def _parse_ticket_summary(self, row) -> Dict[str, Any]:
+        """Parse a database row into a ticket summary dictionary."""
         create_time = row[3]
-        update_time = row[4] if row[4] else create_time  # fallback to createTime
+        update_time = row[4] if row[4] else create_time
+        return {
+            'processId': row[0],
+            'issueType': row[1],
+            'owner': row[2],
+            'createTime': create_time,
+            'updateTime': update_time,
+            'problem': row[5],
+            'score': row[6],
+            'hasReview': bool(row[7]) if len(row) > 7 else False
+        }
+
+    def _parse_ticket_row(self, row) -> Dict[str, Any]:
+        """Parse a database row into a full ticket dictionary."""
+        create_time = row[3]
+        update_time = row[4] if row[4] else create_time
         return {
             'processId': row[0],
             'issueType': row[1],
@@ -71,6 +101,38 @@ class SQLiteDatabase(DatabaseInterface):
         conn.row_factory = sqlite3.Row
         return conn
 
+    def _ensure_review_table(self, conn):
+        """Create ticket_review table if not exists."""
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ticket_review (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                processId TEXT NOT NULL UNIQUE,
+                createTime TEXT NOT NULL,
+                updateTime TEXT NOT NULL,
+                content TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+
+    def get_ticket_list(self) -> List[Dict[str, Any]]:
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT T2."流程ID", C."issueType", C."owner", T2.create_time, T2.update_time,
+                       T2."问题现象", T2."得分", R.id
+                FROM operations_kb as T2
+                JOIN ticket_classification_2512 as C ON T2."流程ID" = C."processId"
+                LEFT JOIN ticket_review as R ON T2."流程ID" = R.processId
+                ORDER BY T2.update_time DESC, T2.create_time DESC
+            ''')
+            rows = cursor.fetchall()
+            return [self._parse_ticket_summary(row) for row in rows]
+        finally:
+            conn.close()
+
     def get_all_tickets(self) -> List[Dict[str, Any]]:
         conn = self._get_connection()
         try:
@@ -101,6 +163,67 @@ class SQLiteDatabase(DatabaseInterface):
             ''', (process_id,))
             row = cursor.fetchone()
             return self._parse_ticket_row(row) if row else None
+        finally:
+            conn.close()
+
+    def get_ticket_review(self, process_id: str) -> Optional[Dict[str, Any]]:
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, processId, createTime, updateTime, content
+                FROM ticket_review WHERE processId = ?
+            ''', (process_id,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    'id': row[0],
+                    'processId': row[1],
+                    'createTime': row[2],
+                    'updateTime': row[3],
+                    'content': row[4]
+                }
+            return None
+        finally:
+            conn.close()
+
+    def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
+        from datetime import datetime
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            # Check if review exists
+            cursor.execute('SELECT id, createTime FROM ticket_review WHERE processId = ?', (process_id,))
+            existing = cursor.fetchone()
+
+            if existing:
+                # Update existing
+                cursor.execute('''
+                    UPDATE ticket_review SET content = ?, updateTime = ? WHERE processId = ?
+                ''', (content, now, process_id))
+                create_time = existing[1]
+                review_id = existing[0]
+            else:
+                # Insert new
+                cursor.execute('''
+                    INSERT INTO ticket_review (processId, createTime, updateTime, content)
+                    VALUES (?, ?, ?, ?)
+                ''', (process_id, now, now, content))
+                create_time = now
+                review_id = cursor.lastrowid
+
+            conn.commit()
+            return {
+                'id': review_id,
+                'processId': process_id,
+                'createTime': create_time,
+                'updateTime': now,
+                'content': content
+            }
         finally:
             conn.close()
 
@@ -141,6 +264,24 @@ class PostgreSQLDatabase(DatabaseInterface):
             password=self.password
         )
 
+    def get_ticket_list(self) -> List[Dict[str, Any]]:
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT T2."流程ID", C."issueType", C."owner", T2.create_time, T2.update_time,
+                       T2."问题现象", T2."得分", R.id
+                FROM operations_kb as T2
+                JOIN ticket_classification_2512 as C ON T2."流程ID" = C."processId"
+                LEFT JOIN ticket_review as R ON T2."流程ID" = R.processId
+                ORDER BY T2.update_time DESC, T2.create_time DESC
+            ''')
+            rows = cursor.fetchall()
+            return [self._parse_ticket_summary(row) for row in rows]
+        finally:
+            conn.close()
+
     def get_all_tickets(self) -> List[Dict[str, Any]]:
         conn = self._get_connection()
         try:
@@ -171,6 +312,81 @@ class PostgreSQLDatabase(DatabaseInterface):
             ''', (process_id,))
             row = cursor.fetchone()
             return self._parse_ticket_row(row) if row else None
+        finally:
+            conn.close()
+
+    def _ensure_review_table(self, conn):
+        """Create ticket_review table if not exists."""
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ticket_review (
+                id SERIAL PRIMARY KEY,
+                processId TEXT NOT NULL UNIQUE,
+                createTime TIMESTAMP NOT NULL,
+                updateTime TIMESTAMP NOT NULL,
+                content TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+
+    def get_ticket_review(self, process_id: str) -> Optional[Dict[str, Any]]:
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, processId, createTime, updateTime, content
+                FROM ticket_review WHERE processId = %s
+            ''', (process_id,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    'id': row[0],
+                    'processId': row[1],
+                    'createTime': row[2].strftime('%Y-%m-%d %H:%M:%S') if row[2] else None,
+                    'updateTime': row[3].strftime('%Y-%m-%d %H:%M:%S') if row[3] else None,
+                    'content': row[4]
+                }
+            return None
+        finally:
+            conn.close()
+
+    def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
+        from datetime import datetime
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            now = datetime.now()
+
+            # Check if review exists
+            cursor.execute('SELECT id, createTime FROM ticket_review WHERE processId = %s', (process_id,))
+            existing = cursor.fetchone()
+
+            if existing:
+                # Update existing
+                cursor.execute('''
+                    UPDATE ticket_review SET content = %s, updateTime = %s WHERE processId = %s
+                ''', (content, now, process_id))
+                create_time = existing[1]
+                review_id = existing[0]
+            else:
+                # Insert new
+                cursor.execute('''
+                    INSERT INTO ticket_review (processId, createTime, updateTime, content)
+                    VALUES (%s, %s, %s, %s) RETURNING id
+                ''', (process_id, now, now, content))
+                create_time = now
+                review_id = cursor.fetchone()[0]
+
+            conn.commit()
+            return {
+                'id': review_id,
+                'processId': process_id,
+                'createTime': create_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'updateTime': now.strftime('%Y-%m-%d %H:%M:%S'),
+                'content': content
+            }
         finally:
             conn.close()
 

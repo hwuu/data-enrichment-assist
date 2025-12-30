@@ -387,6 +387,79 @@
             color: #d4d4d4;
         }
 
+        /* Review Section */
+        .review-card {
+            background: #252526;
+            padding: 16px;
+            border-radius: 6px;
+        }
+
+        .review-meta {
+            display: flex;
+            gap: 24px;
+            font-size: 12px;
+            color: #858585;
+            margin-bottom: 12px;
+        }
+
+        .review-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
+            color: #d4d4d4;
+            font-size: 14px;
+            font-family: inherit;
+            line-height: 1.5;
+            resize: vertical;
+        }
+
+        .review-textarea:focus {
+            outline: none;
+            border-color: #569cd6;
+        }
+
+        .review-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .btn-review {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-save {
+            background: #0e639c;
+            border: 1px solid #0e639c;
+            color: white;
+        }
+
+        .btn-save:hover:not(:disabled) {
+            background: #1177bb;
+        }
+
+        .btn-restore {
+            background: transparent;
+            border: 1px solid #5a5a5a;
+            color: #d4d4d4;
+        }
+
+        .btn-restore:hover:not(:disabled) {
+            background: #3e3e3e;
+        }
+
+        .btn-review:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         .detail-meta {
             display: flex;
             flex-wrap: wrap;
@@ -586,6 +659,15 @@
                     </div>
 
                     <div class="filter-group">
+                        <label class="filter-label">审核状态</label>
+                        <select class="filter-select" id="reviewFilter">
+                            <option value="all">全部</option>
+                            <option value="reviewed">已审核</option>
+                            <option value="pending">未审核</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
                         <label class="filter-label">排序方式</label>
                         <select class="filter-select" id="sortFilter">
                             <option value="updateTime-desc">更新时间 ↓</option>
@@ -639,10 +721,15 @@
             type: 'all',
             owner: 'all',
             score: 'all',
+            review: 'all',
             sort: 'updateTime-desc'
         };
         let selectedTicketId = null;
         let filtersCollapsed = true;
+
+        // Review state
+        let originalReviewContent = '';
+        let currentReviewProcessId = null;
 
         // Initialize
         function init() {
@@ -691,6 +778,10 @@
                 const scoreLabels = { high: '高分', medium: '中等', low: '低分' };
                 tags.push(`得分: ${scoreLabels[currentFilters.score]}`);
             }
+            if (currentFilters.review !== 'all') {
+                const reviewLabels = { reviewed: '已审核', pending: '未审核' };
+                tags.push(`审核: ${reviewLabels[currentFilters.review]}`);
+            }
 
             if (tags.length === 0) {
                 summary.innerHTML = `<span class="no-filter">共 ${totalCount} 条工单</span>`;
@@ -721,6 +812,10 @@
                     if (currentFilters.score === 'high' && score < 8) return false;
                     if (currentFilters.score === 'medium' && (score < 6 || score >= 8)) return false;
                     if (currentFilters.score === 'low' && score >= 6) return false;
+                }
+                if (currentFilters.review !== 'all') {
+                    if (currentFilters.review === 'reviewed' && !ticket.hasReview) return false;
+                    if (currentFilters.review === 'pending' && ticket.hasReview) return false;
                 }
                 return true;
             });
@@ -816,11 +911,96 @@
                 }
             }
 
-            // Find ticket data
-            const ticket = ticketsData.find(t => t.processId === processId);
-            if (ticket) {
-                renderDetail(ticket);
+            // Fetch ticket detail from API
+            fetchTicketDetail(processId);
+        }
+
+        // Fetch ticket detail from API
+        async function fetchTicketDetail(processId) {
+            const panel = document.getElementById('detailPanel');
+            panel.innerHTML = '<div class="empty-state">加载中...</div>';
+
+            try {
+                const response = await fetch(`/api/tickets/${processId}`);
+                const ticket = await response.json();
+                if (ticket.error) {
+                    panel.innerHTML = '<div class="empty-state">工单未找到</div>';
+                } else {
+                    renderDetail(ticket);
+                    // Fetch review after rendering detail
+                    fetchReview(processId);
+                }
+            } catch (error) {
+                panel.innerHTML = '<div class="empty-state">加载失败</div>';
             }
+        }
+
+        // Fetch review for current ticket
+        async function fetchReview(processId) {
+            currentReviewProcessId = processId;
+            try {
+                const response = await fetch(`/api/tickets/${processId}/review`);
+                const review = await response.json();
+
+                originalReviewContent = review.content || '';
+                document.getElementById('reviewContent').value = originalReviewContent;
+                document.getElementById('reviewCreateTime').textContent = review.createTime || '-';
+                document.getElementById('reviewUpdateTime').textContent = review.updateTime || '-';
+
+                // Setup textarea listener
+                const textarea = document.getElementById('reviewContent');
+                textarea.oninput = updateReviewButtons;
+
+                updateReviewButtons();
+            } catch (error) {
+                console.error('Failed to fetch review:', error);
+            }
+        }
+
+        // Save review
+        async function saveReview() {
+            if (!currentReviewProcessId) return;
+
+            const content = document.getElementById('reviewContent').value;
+            const btnSave = document.getElementById('btnSaveReview');
+            btnSave.disabled = true;
+            btnSave.textContent = '保存中...';
+
+            try {
+                const response = await fetch(`/api/tickets/${currentReviewProcessId}/review`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                const review = await response.json();
+
+                originalReviewContent = review.content;
+                document.getElementById('reviewCreateTime').textContent = review.createTime || '-';
+                document.getElementById('reviewUpdateTime').textContent = review.updateTime || '-';
+
+                updateReviewButtons();
+            } catch (error) {
+                console.error('Failed to save review:', error);
+                alert('保存失败');
+            } finally {
+                btnSave.textContent = '保存';
+            }
+        }
+
+        // Restore review to original content
+        function restoreReview() {
+            document.getElementById('reviewContent').value = originalReviewContent;
+            updateReviewButtons();
+        }
+
+        // Update review button states
+        function updateReviewButtons() {
+            const content = document.getElementById('reviewContent').value;
+            const hasChanges = content !== originalReviewContent;
+            const hasOriginal = originalReviewContent !== '';
+
+            document.getElementById('btnSaveReview').disabled = !hasChanges;
+            document.getElementById('btnRestoreReview').disabled = !hasChanges || !hasOriginal;
         }
 
         // Handle URL hash for deep linking
@@ -865,6 +1045,24 @@
                         <div class="meta-item">
                             <span class="meta-label">更新时间:</span>
                             <span>${ticket.updateTime}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expert Review -->
+                <div class="detail-section" id="reviewSection">
+                    <div class="section-title">审核意见</div>
+                    <div class="section-content">
+                        <div class="review-card">
+                            <div class="review-meta">
+                                <span>创建时间: <span id="reviewCreateTime">-</span></span>
+                                <span>更新时间: <span id="reviewUpdateTime">-</span></span>
+                            </div>
+                            <textarea class="review-textarea" id="reviewContent" placeholder="输入审核意见..."></textarea>
+                            <div class="review-actions">
+                                <button class="btn-review btn-save" id="btnSaveReview" onclick="saveReview()" disabled>保存</button>
+                                <button class="btn-review btn-restore" id="btnRestoreReview" onclick="restoreReview()" disabled>还原</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -985,6 +1183,11 @@
                 updateFilters();
             });
 
+            document.getElementById('reviewFilter').addEventListener('change', (e) => {
+                currentFilters.review = e.target.value;
+                updateFilters();
+            });
+
             document.getElementById('sortFilter').addEventListener('change', (e) => {
                 currentFilters.sort = e.target.value;
                 updateFilters();
@@ -1005,6 +1208,7 @@
             if (currentFilters.type !== 'all') params.set('type', currentFilters.type);
             if (currentFilters.owner !== 'all') params.set('owner', currentFilters.owner);
             if (currentFilters.score !== 'all') params.set('score', currentFilters.score);
+            if (currentFilters.review !== 'all') params.set('review', currentFilters.review);
             if (currentFilters.sort !== 'updateTime-desc') params.set('sort', currentFilters.sort);
 
             let url = window.location.pathname;
@@ -1031,6 +1235,10 @@
                 currentFilters.score = params.get('score');
                 document.getElementById('scoreFilter').value = currentFilters.score;
             }
+            if (params.has('review')) {
+                currentFilters.review = params.get('review');
+                document.getElementById('reviewFilter').value = currentFilters.review;
+            }
             if (params.has('sort')) {
                 currentFilters.sort = params.get('sort');
                 document.getElementById('sortFilter').value = currentFilters.sort;
@@ -1044,7 +1252,8 @@
         function hasActiveFilters() {
             return currentFilters.type !== 'all' ||
                    currentFilters.owner !== 'all' ||
-                   currentFilters.score !== 'all';
+                   currentFilters.score !== 'all' ||
+                   currentFilters.review !== 'all';
         }
 
         // Update clear button state
@@ -1055,10 +1264,11 @@
 
         // Clear all filters
         function clearFilters() {
-            currentFilters = { type: 'all', owner: 'all', score: 'all', sort: 'updateTime-desc' };
+            currentFilters = { type: 'all', owner: 'all', score: 'all', review: 'all', sort: 'updateTime-desc' };
             document.getElementById('typeFilter').value = 'all';
             document.getElementById('ownerFilter').value = 'all';
             document.getElementById('scoreFilter').value = 'all';
+            document.getElementById('reviewFilter').value = 'all';
             document.getElementById('sortFilter').value = 'updateTime-desc';
             updateFilters();
         }
