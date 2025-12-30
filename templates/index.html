@@ -234,21 +234,8 @@
             border-radius: 3px;
             font-size: 11px;
             font-weight: bold;
-        }
-
-        .ticket-type.slow-sql {
-            background: #fff3e0;
-            color: #e65100;
-        }
-
-        .ticket-type.backup {
             background: #e3f2fd;
             color: #1565c0;
-        }
-
-        .ticket-type.log {
-            background: #e8f5e9;
-            color: #2e7d32;
         }
 
         .ticket-problem {
@@ -343,14 +330,15 @@
             font-weight: bold;
         }
 
-        /* Score Badge in Header */
-        .header-score {
+        /* Score Card */
+        .score-card {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             background: #252526;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 14px 18px;
+            border-radius: 6px;
+            /*border-left: 4px solid #569cd6;*/
         }
 
         .score-badge {
@@ -427,7 +415,7 @@
             margin-bottom: 12px;
             padding: 8px 12px;
             background: #2d2d2d;
-            border-left: 4px solid #4ec9b0;
+            /* border-left: 4px solid #4ec9b0; */
         }
 
         .section-content {
@@ -441,7 +429,7 @@
             font-size: 14px;
             line-height: 1.6;
             color: #d4d4d4;
-            border-left: 4px solid #569cd6;
+            /* border-left: 4px solid #569cd6; */
         }
 
         /* Analysis Steps */
@@ -454,7 +442,7 @@
             padding: 14px 16px;
             border-radius: 4px;
             margin-bottom: 10px;
-            border-left: 3px solid #dcdcaa;
+            /* border-left: 3px solid #dcdcaa; */
         }
 
         .step-number {
@@ -493,7 +481,7 @@
             padding: 14px 16px;
             border-radius: 4px;
             margin-bottom: 10px;
-            border-left: 3px solid #6a9955;
+            /* border-left: 3px solid #6a9955; */
         }
 
         .solution-item .step-number {
@@ -694,14 +682,6 @@
             }
         }
 
-        // Get ticket type class
-        function getTypeClass(issueType) {
-            if (issueType === '慢SQL') return 'slow-sql';
-            if (issueType === '备份恢复') return 'backup';
-            if (issueType === '日志管理') return 'log';
-            return '';
-        }
-
         // Get score class
         function getScoreClass(score) {
             if (score >= 8) return 'high';
@@ -739,7 +719,6 @@
             }
 
             listEl.innerHTML = filtered.map(ticket => {
-                const typeClass = getTypeClass(ticket.issueType);
                 const scoreClass = getScoreClass(ticket.score);
                 const isSelected = ticket.processId === selectedTicketId;
 
@@ -749,7 +728,7 @@
                          data-id="${ticket.processId}">
                         <div class="ticket-header">
                             <span class="ticket-id">${ticket.processId}</span>
-                            <span class="ticket-type ${typeClass}">${ticket.issueType}</span>
+                            <span class="ticket-type">${ticket.issueType}</span>
                         </div>
                         <div class="ticket-problem">${ticket.problem}</div>
                         <div class="ticket-meta">
@@ -821,7 +800,6 @@
         // Render detail view
         function renderDetail(ticket) {
             const panel = document.getElementById('detailPanel');
-            const typeClass = getTypeClass(ticket.issueType);
             const scoreClass = getScoreClass(ticket.score);
 
             let html = `
@@ -829,14 +807,7 @@
                     <div class="detail-title-row">
                         <div class="detail-title">
                             <span class="detail-id">${ticket.processId}</span>
-                            <span class="detail-type ticket-type ${typeClass}">${ticket.issueType}</span>
-                        </div>
-                        <div class="header-score">
-                            <div class="score-badge ${scoreClass}">${ticket.score}</div>
-                            <div class="score-detail">
-                                <div class="diff">diff_score: ${ticket.diffScore}</div>
-                                <div class="reason">${ticket.reason}</div>
-                            </div>
+                            <span class="detail-type ticket-type">${ticket.issueType}</span>
                         </div>
                     </div>
                     <div class="detail-meta">
@@ -851,6 +822,20 @@
                         <div class="meta-item">
                             <span class="meta-label">更新时间:</span>
                             <span>${ticket.updateTime}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Score Card -->
+                <div class="detail-section">
+                    <div class="section-title">质量评分</div>
+                    <div class="section-content">
+                        <div class="score-card">
+                            <div class="score-badge ${scoreClass}">${ticket.score}</div>
+                            <div class="score-detail">
+                                <div class="diff">diff_score: ${ticket.diffScore}</div>
+                                <div class="reason">${ticket.reason}</div>
+                            </div>
                         </div>
                     </div>
                 </div>

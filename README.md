@@ -8,24 +8,63 @@ GaussDB 数据库运维工单浏览器，用于查看和筛选运维知识库中
 - 按问题类型、负责人、得分范围筛选
 - URL Hash 定位，支持分享链接直达具体工单
 - 深色主题详情页，展示问题描述、根因、分析过程、解决方案
+- 支持 SQLite 和 PostgreSQL 数据库
 
-## 安装
+## 快速开始
+
+### Docker (推荐)
 
 ```bash
-pip install -r requirements.txt
+# 构建镜像
+docker build -t gaussdb-ops-viewer .
+
+# 运行 (SQLite)
+docker run -d -p 3011:3011 \
+  -v /path/to/gaussdb_ops.db:/app/gaussdb_ops.db \
+  gaussdb-ops-viewer
+
+# 运行 (PostgreSQL)
+docker run -d -p 3011:3011 \
+  -e DB_TYPE=postgresql \
+  -e DB_HOST=your-db-host \
+  -e DB_PORT=5432 \
+  -e DB_NAME=gaussdb_ops \
+  -e DB_USER=postgres \
+  -e DB_PASSWORD=your-password \
+  gaussdb-ops-viewer
 ```
 
-## 运行
+### 本地运行
 
 ```bash
-# 开发模式
-python app.py
+# 安装依赖
+pip install -r requirements.txt
 
-# 生产模式
-uvicorn app:app --host 0.0.0.0 --port 3011 --workers 4
+# 生成测试数据
+python generate_mock_data.py
+
+# 启动服务
+python app.py
 ```
 
 访问 http://127.0.0.1:3011
+
+## 配置
+
+通过环境变量配置：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `DB_TYPE` | `sqlite` | 数据库类型: `sqlite` / `postgresql` |
+| `DB_PATH` | `gaussdb_ops.db` | SQLite 数据库路径 |
+| `DB_HOST` | `localhost` | PostgreSQL 主机 |
+| `DB_PORT` | `5432` | PostgreSQL 端口 |
+| `DB_NAME` | `gaussdb_ops` | PostgreSQL 数据库名 |
+| `DB_USER` | `postgres` | PostgreSQL 用户名 |
+| `DB_PASSWORD` | - | PostgreSQL 密码 |
+| `SERVER_HOST` | `127.0.0.1` | 服务监听地址 |
+| `SERVER_PORT` | `3011` | 服务端口 |
+| `WORKERS` | `4` | uvicorn worker 数量 (Docker) |
 
 ## API
 
@@ -36,15 +75,15 @@ uvicorn app:app --host 0.0.0.0 --port 3011 --workers 4
 | `GET /api/tickets/{id}` | 获取单个工单 |
 | `GET /docs` | Swagger API 文档 |
 
-## 数据库
+## 项目结构
 
-SQLite 数据库 `gaussdb_ops.db`，包含两张表：
-
-- `ticket_classification_2512` - 工单分类信息
-- `operations_kb` - 运维知识库详情
-
-生成测试数据：
-
-```bash
-python generate_mock_data.py
+```
+├── app.py              # FastAPI 应用入口
+├── config.py           # 配置管理
+├── database.py         # 数据库抽象层
+├── Dockerfile
+├── generate_mock_data.py
+├── requirements.txt
+└── templates/
+    └── index.html
 ```
