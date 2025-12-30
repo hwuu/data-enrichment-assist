@@ -944,8 +944,8 @@
 
                 originalReviewContent = review.content || '';
                 document.getElementById('reviewContent').value = originalReviewContent;
-                document.getElementById('reviewCreateTime').textContent = review.createTime || '-';
-                document.getElementById('reviewUpdateTime').textContent = review.updateTime || '-';
+                document.getElementById('reviewCreateTime').textContent = formatUtcToLocal(review.createTime);
+                document.getElementById('reviewUpdateTime').textContent = formatUtcToLocal(review.updateTime);
 
                 // Setup textarea listener
                 const textarea = document.getElementById('reviewContent');
@@ -975,8 +975,8 @@
                 const review = await response.json();
 
                 originalReviewContent = review.content;
-                document.getElementById('reviewCreateTime').textContent = review.createTime || '-';
-                document.getElementById('reviewUpdateTime').textContent = review.updateTime || '-';
+                document.getElementById('reviewCreateTime').textContent = formatUtcToLocal(review.createTime);
+                document.getElementById('reviewUpdateTime').textContent = formatUtcToLocal(review.updateTime);
 
                 updateReviewButtons();
             } catch (error) {
@@ -1164,6 +1164,15 @@
         function formatText(text) {
             if (!text) return '';
             return escapeHtml(text).replace(/\n/g, '<br>');
+        }
+
+        // Format UTC time to local time
+        function formatUtcToLocal(utcString) {
+            if (!utcString) return '-';
+            const date = new Date(utcString);
+            if (isNaN(date.getTime())) return utcString;
+            const pad = n => String(n).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
         }
 
         // Setup filter handlers

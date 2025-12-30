@@ -189,12 +189,12 @@ class SQLiteDatabase(DatabaseInterface):
             conn.close()
 
     def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
-        from datetime import datetime
+        from datetime import datetime, timezone
         conn = self._get_connection()
         try:
             self._ensure_review_table(conn)
             cursor = conn.cursor()
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
             # Check if review exists
             cursor.execute('SELECT id, createTime FROM ticket_review WHERE processId = ?', (process_id,))
@@ -343,8 +343,8 @@ class PostgreSQLDatabase(DatabaseInterface):
                 return {
                     'id': row[0],
                     'processId': row[1],
-                    'createTime': row[2].strftime('%Y-%m-%d %H:%M:%S') if row[2] else None,
-                    'updateTime': row[3].strftime('%Y-%m-%d %H:%M:%S') if row[3] else None,
+                    'createTime': row[2].strftime('%Y-%m-%dT%H:%M:%SZ') if row[2] else None,
+                    'updateTime': row[3].strftime('%Y-%m-%dT%H:%M:%SZ') if row[3] else None,
                     'content': row[4]
                 }
             return None
@@ -352,12 +352,12 @@ class PostgreSQLDatabase(DatabaseInterface):
             conn.close()
 
     def save_ticket_review(self, process_id: str, content: str) -> Dict[str, Any]:
-        from datetime import datetime
+        from datetime import datetime, timezone
         conn = self._get_connection()
         try:
             self._ensure_review_table(conn)
             cursor = conn.cursor()
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
 
             # Check if review exists
             cursor.execute('SELECT id, createTime FROM ticket_review WHERE processId = %s', (process_id,))
@@ -383,8 +383,8 @@ class PostgreSQLDatabase(DatabaseInterface):
             return {
                 'id': review_id,
                 'processId': process_id,
-                'createTime': create_time.strftime('%Y-%m-%d %H:%M:%S'),
-                'updateTime': now.strftime('%Y-%m-%d %H:%M:%S'),
+                'createTime': create_time.strftime('%Y-%m-%dT%H:%M:%SZ') if hasattr(create_time, 'strftime') else create_time,
+                'updateTime': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'content': content
             }
         finally:
