@@ -142,6 +142,9 @@ async def api_export(
     for col, header in enumerate(headers, 1):
         ws.cell(row=1, column=col, value=header)
 
+    # Get all reviews in one query (avoid N+1 problem)
+    all_reviews = db.get_all_reviews()
+
     # Data rows
     for row_idx, ticket in enumerate(filtered, 2):
         # Generate URL if pattern is set
@@ -149,8 +152,8 @@ async def api_export(
         if TICKET_URL_PATTERN:
             url = TICKET_URL_PATTERN.replace("{processId}", ticket["processId"])
 
-        # Get review info
-        rev = db.get_ticket_review(ticket["processId"])
+        # Get review info from cached dict
+        rev = all_reviews.get(ticket["processId"])
         conclusion = rev.get("conclusion", "") if rev else ""
         content = rev.get("content", "") if rev else ""
 

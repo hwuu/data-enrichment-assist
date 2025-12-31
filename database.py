@@ -38,6 +38,11 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
+    def get_all_reviews(self) -> Dict[str, Dict[str, Any]]:
+        """Get all reviews as a dict keyed by processId."""
+        pass
+
+    @abstractmethod
     def save_ticket_review(self, process_id: str, conclusion: str, content: str) -> Dict[str, Any]:
         """Save or update review for a ticket. Returns the saved review."""
         pass
@@ -203,6 +208,29 @@ class SQLiteDatabase(DatabaseInterface):
                     'content': row[5]
                 }
             return None
+        finally:
+            conn.close()
+
+    def get_all_reviews(self) -> Dict[str, Dict[str, Any]]:
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, processId, createTime, updateTime, conclusion, content
+                FROM ticket_review
+            ''')
+            result = {}
+            for row in cursor.fetchall():
+                result[row[1]] = {
+                    'id': row[0],
+                    'processId': row[1],
+                    'createTime': row[2],
+                    'updateTime': row[3],
+                    'conclusion': row[4],
+                    'content': row[5]
+                }
+            return result
         finally:
             conn.close()
 
@@ -376,6 +404,29 @@ class PostgreSQLDatabase(DatabaseInterface):
                     'content': row[5]
                 }
             return None
+        finally:
+            conn.close()
+
+    def get_all_reviews(self) -> Dict[str, Dict[str, Any]]:
+        conn = self._get_connection()
+        try:
+            self._ensure_review_table(conn)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, processid, createtime, updatetime, conclusion, content
+                FROM ticket_review
+            ''')
+            result = {}
+            for row in cursor.fetchall():
+                result[row[1]] = {
+                    'id': row[0],
+                    'processId': row[1],
+                    'createTime': row[2].strftime('%Y-%m-%dT%H:%M:%SZ') if row[2] else None,
+                    'updateTime': row[3].strftime('%Y-%m-%dT%H:%M:%SZ') if row[3] else None,
+                    'conclusion': row[4],
+                    'content': row[5]
+                }
+            return result
         finally:
             conn.close()
 
