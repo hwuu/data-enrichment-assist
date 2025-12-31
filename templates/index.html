@@ -160,6 +160,29 @@
             padding-top: 12px;
         }
 
+        .export-section {
+            border-top: 1px solid #eee;
+            padding-top: 12px;
+            margin-top: 12px;
+        }
+
+        .btn-export {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #28a745;
+            border-radius: 4px;
+            background: #28a745;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-export:hover {
+            background: #218838;
+            border-color: #218838;
+        }
+
         /* Toggle Button */
         .filters-toggle {
             display: flex;
@@ -825,6 +848,10 @@
                             </select>
                         </div>
                         <button class="btn-reset-sort" id="resetSortBtn" onclick="resetSort()" disabled>恢复默认排序方式</button>
+                    </div>
+
+                    <div class="export-section">
+                        <button class="btn-export" onclick="exportToExcel()">导出到 Excel</button>
                     </div>
                 </div>
                 <div class="filter-summary" id="filterSummary">
@@ -1540,6 +1567,17 @@
             currentFilters.sort = 'updateTime-desc';
             document.getElementById('sortFilter').value = 'updateTime-desc';
             updateFilters();
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            const params = new URLSearchParams();
+            params.set('type', currentFilters.type);
+            params.set('owner', currentFilters.owner);
+            params.set('score', currentFilters.score);
+            params.set('review', currentFilters.review);
+            params.set('sort', currentFilters.sort);
+            window.open('/api/export?' + params.toString(), '_blank');
         }
 
         // Start
