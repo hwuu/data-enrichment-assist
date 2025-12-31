@@ -212,6 +212,22 @@
             margin-bottom: 4px;
         }
 
+        .filter-summary .filter-count {
+            display: inline-block;
+            font-weight: bold;
+            color: #333;
+            margin-right: 8px;
+        }
+
+        .filter-summary .sort-tag {
+            display: inline-block;
+            background: #6c757d;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+        }
+
         .filter-summary .no-filter {
             color: #999;
             /* font-style: italic; */
@@ -792,13 +808,13 @@
                         <button class="btn-reset-sort" id="resetSortBtn" onclick="resetSort()" disabled>恢复默认排序方式</button>
                     </div>
                 </div>
+                <div class="filter-summary" id="filterSummary">
+                    <span class="no-filter">共 {{ tickets|length }} 条工单</span>
+                </div>
                 <button class="filters-toggle collapsed" id="filtersToggle" onclick="toggleFilters()">
                     <span id="toggleText">展开控制面板</span>
                     <span class="arrow">&#9650;</span>
                 </button>
-                <div class="filter-summary visible" id="filterSummary">
-                    <span class="no-filter">共 {{ tickets|length }} 条工单</span>
-                </div>
             </div>
 
             <!-- Ticket List -->
@@ -891,12 +907,26 @@
                 tags.push(`审核: ${reviewLabels[currentFilters.review]}`);
             }
 
-            if (tags.length === 0) {
-                summary.innerHTML = `<span class="no-filter">共 ${totalCount} 条工单</span>`;
-            } else {
-                summary.innerHTML = tags.map(t => `<span class="filter-tag">${t}</span>`).join('') +
-                    `<span style="margin-left: 8px; color: #666;">(${filteredCount}/${totalCount})</span>`;
+            // Sort label
+            const sortLabels = {
+                'updateTime-desc': '更新时间 ↓',
+                'updateTime-asc': '更新时间 ↑',
+                'createTime-desc': '创建时间 ↓',
+                'createTime-asc': '创建时间 ↑',
+                'id-asc': 'ID ↑',
+                'id-desc': 'ID ↓',
+                'score-desc': '评分 ↓',
+                'score-asc': '评分 ↑'
+            };
+            const sortText = `排序: ${sortLabels[currentFilters.sort] || currentFilters.sort}`;
+
+            // Build summary
+            let html = `<span class="filter-count">${filteredCount}/${totalCount}</span>`;
+            if (tags.length > 0) {
+                html += tags.map(t => `<span class="filter-tag">${t}</span>`).join('');
             }
+            html += `<span class="sort-tag">${sortText}</span>`;
+            summary.innerHTML = html;
         }
 
         // Get score class
