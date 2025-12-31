@@ -733,6 +733,75 @@
         .btn-export-footer .export-icon {
             font-weight: bold;
         }
+
+        /* Confirm Dialog */
+        .confirm-dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-dialog-overlay.visible {
+            display: flex;
+        }
+
+        .confirm-dialog {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            min-width: 300px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .confirm-dialog-message {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .confirm-dialog-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .confirm-btn {
+            padding: 8px 24px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .confirm-btn-no {
+            background: white;
+            border: 1px solid #ddd;
+            color: #666;
+        }
+
+        .confirm-btn-no:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        .confirm-btn-yes {
+            background: #667eea;
+            border: 1px solid #667eea;
+            color: white;
+        }
+
+        .confirm-btn-yes:hover {
+            background: #5a6fd6;
+            border-color: #5a6fd6;
+        }
     </style>
 </head>
 <body>
@@ -827,6 +896,17 @@
         <div class="right-panel" id="detailPanel">
             <div class="empty-state">
                 <span>&#x1F448; 从列表中选择一个工单查看详情</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div class="confirm-dialog-overlay" id="confirmDialog" onclick="onOverlayClick(event)">
+        <div class="confirm-dialog" onclick="event.stopPropagation()">
+            <div class="confirm-dialog-message" id="confirmMessage"></div>
+            <div class="confirm-dialog-buttons">
+                <button class="confirm-btn confirm-btn-no" onclick="closeConfirmDialog(false)">否</button>
+                <button class="confirm-btn confirm-btn-yes" onclick="closeConfirmDialog(true)">是</button>
             </div>
         </div>
     </div>
@@ -1517,19 +1597,55 @@
             updateFilters();
         }
 
+        // Confirm dialog
+        let confirmCallback = null;
+
+        function showConfirmDialog(message, callback) {
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmDialog').classList.add('visible');
+            confirmCallback = callback;
+        }
+
+        function closeConfirmDialog(result) {
+            document.getElementById('confirmDialog').classList.remove('visible');
+            if (confirmCallback) {
+                confirmCallback(result);
+                confirmCallback = null;
+            }
+        }
+
+        function onOverlayClick(event) {
+            if (event.target === document.getElementById('confirmDialog')) {
+                closeConfirmDialog(false);
+            }
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.getElementById('confirmDialog').classList.contains('visible')) {
+                closeConfirmDialog(false);
+            }
+        });
+
         // Export to Excel
         function exportToExcel() {
             const filteredCount = getFilteredTickets().length;
-            if (!confirm(`是否要导出 ${filteredCount} 条问题单评审数据？`)) {
-                return;
-            }
-            const params = new URLSearchParams();
-            params.set('type', currentFilters.type);
-            params.set('owner', currentFilters.owner);
-            params.set('score', currentFilters.score);
-            params.set('review', currentFilters.review);
-            params.set('sort', currentFilters.sort);
-            window.open('/api/export?' + params.toString(), '_blank');
+            showConfirmDialog(`是否要导出 ${filteredCount} 条问题单评审数据？`, (confirmed) => {
+                if (!confirmed) return;
+                const params = new URLSearchParams();
+                params.set('type', currentFilters.type);
+                params.set('owner', currentFilters.owner);
+                params.set('score', currentFilters.score);
+                params.set('review', currentFilters.review);
+                params.set('sort', currentFilters.sort);
+
+                // Use hidden link to download without navigation
+                const link = document.createElement('a');
+                link.href = '/api/export?' + params.toString();
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
         }
 
         // Start
