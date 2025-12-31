@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from config import DATABASE_CONFIG, SERVER_HOST, SERVER_PORT
+from config import DATABASE_CONFIG, SERVER_HOST, SERVER_PORT, TICKET_URL_PATTERN
 from database import create_database
 
 app = FastAPI(title="GaussDB Ops Viewer", description="运维工单浏览器")
@@ -35,7 +35,8 @@ async def index(request: Request):
             "request": request,
             "tickets": tickets,
             "issue_types": issue_types,
-            "owners": owners
+            "owners": owners,
+            "ticket_url_pattern": TICKET_URL_PATTERN
         }
     )
 

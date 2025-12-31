@@ -20,3 +20,7 @@ DATABASE_CONFIG = {
 # Server configuration
 SERVER_HOST = os.getenv('SERVER_HOST', '127.0.0.1')
 SERVER_PORT = int(os.getenv('SERVER_PORT', '3011'))
+
+# Ticket URL pattern (e.g., 'http://abc/{processId}')
+# {processId} will be replaced with the actual process ID
+TICKET_URL_PATTERN = os.getenv('TICKET_URL_PATTERN', '')

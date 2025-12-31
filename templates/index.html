@@ -389,6 +389,25 @@
             color: #9cdcfe;
         }
 
+        .ticket-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #4fc3f7;
+            color: #1a1a2e;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .ticket-link:hover {
+            background: #29b6f6;
+        }
+
         .detail-type {
             padding: 4px 12px;
             border-radius: 4px;
@@ -850,6 +869,9 @@
         let selectedTicketId = null;
         let filtersCollapsed = true;
 
+        // Ticket URL pattern from backend
+        const ticketUrlPattern = '{{ ticket_url_pattern }}';
+
         // Review state
         let originalReviewConclusion = '';
         let originalReviewContent = '';
@@ -1240,11 +1262,19 @@
             const panel = document.getElementById('detailPanel');
             const scoreClass = getScoreClass(ticket.score);
 
+            // Generate ticket URL if pattern is set
+            let ticketLink = '';
+            if (ticketUrlPattern) {
+                const ticketUrl = ticketUrlPattern.replace('{processId}', ticket.processId);
+                ticketLink = `<a href="${ticketUrl}" target="_blank" class="ticket-link" title="在新标签页打开">↗</a>`;
+            }
+
             let html = `
                 <div class="detail-header">
                     <div class="detail-title-row">
                         <div class="detail-title">
                             <span class="detail-id">${ticket.processId}</span>
+                            ${ticketLink}
                             <span class="detail-type ticket-type">${ticket.issueType}</span>
                         </div>
                     </div>
