@@ -52,33 +52,41 @@
             opacity: 0.9;
         }
 
-        /* Filters Section */
-        .filters-section {
+        /* Control Panel */
+        .control-panel {
             border-bottom: 1px solid #e0e0e0;
             background: #fafafa;
         }
 
-        .filters-content {
+        .filtering-control, .sorting-control {
             padding: 16px;
             max-height: 400px;
             transition: all 0.4s ease;
             overflow: hidden;
         }
 
-        .filters-content.collapsed {
+        .filtering-control.collapsed, .sorting-control.collapsed {
             max-height: 0;
             padding-top: 0;
             padding-bottom: 0;
         }
 
-        .filter-group {
+        .sorting-control {
+            border-top: 1px solid #eee;
+        }
+
+        .selection-group {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 10px;
         }
 
-        .filter-label {
+        .selection-group:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .selection-label {
             font-size: 12px;
             font-weight: 600;
             color: #666;
@@ -86,7 +94,7 @@
             min-width: 60px;
         }
 
-        .filter-select {
+        .selection-select {
             flex: 1;
             padding: 6px 10px;
             border: 1px solid #ddd;
@@ -99,18 +107,17 @@
             transition: border-color 0.2s;
         }
 
-        .filter-select:hover {
+        .selection-select:hover {
             border-color: #667eea;
         }
 
-        .filter-select:focus {
+        .selection-select:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .filter-actions {
-            margin-top: 8px;
-            margin-bottom: 12px;
+        .btn-clear, .btn-reset-sort {
+            margin-top: 10px;
         }
 
         /* Control Panel Buttons - Unified Style */
@@ -139,103 +146,70 @@
             color: white;
         }
 
-        .btn-reset-sort {
-            margin-top: 8px;
-        }
-
-        .sort-section {
-            border-top: 1px solid #eee;
-            padding-top: 12px;
-        }
-
-        .export-section {
-            border-top: 1px solid #eee;
-            padding-top: 12px;
-            margin-top: 12px;
-        }
-
-        .btn-export {
-            border: 1px solid #21A366;
-            background: #21A366;
-            color: white;
-        }
-
-        .btn-export:hover {
-            background: #1e8f59;
-            border-color: #1e8f59;
-        }
-
-        /* Toggle Button */
-        .filters-toggle {
+        /* Toggle Button with Filter Summary */
+        .control-panel-toggle {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             width: 100%;
             padding: 10px 16px;
-            background: #f0f0f0;
+            background: #f5f5f5;
             border: none;
             cursor: pointer;
             font-size: 12px;
             color: #666;
             transition: all 0.2s;
-            border-top: 1px solid #e0e0e0;
         }
 
-        .filters-toggle:hover {
-            background: #e8e8e8;
-            color: #667eea;
+        .control-panel-toggle:hover {
+            background: #eaeaea;
         }
 
-        .filters-toggle .arrow {
-            margin-left: 4px;
-            transition: transform 0.4s;
+        .control-panel-toggle .summary-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
-        .filters-toggle.collapsed .arrow {
+        .control-panel-toggle .toggle-icon {
+            font-size: 12px;
+            color: #999;
+            transition: transform 0.3s;
+            flex-shrink: 0;
+        }
+
+        .control-panel-toggle.collapsed .toggle-icon {
             transform: rotate(180deg);
         }
 
-        /* Filter Summary */
-        .filter-summary {
-            display: block;
-            padding: 8px 16px;
-            font-size: 10px;
-            color: #666;
-            background: #f5f5f5;
-            border-bottom: 1px solid #e8e8e8;
-            text-align: center;
+        .control-panel-toggle .filter-count {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
         }
 
-        .filter-summary .filter-tag {
+        .control-panel-toggle .filter-tag {
             display: inline-block;
             background: #667eea;
             color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 9px;
-            margin-right: 6px;
-            margin-bottom: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
         }
 
-        .filter-summary .filter-count {
-            display: inline-block;
-            font-weight: bold;
-            color: #333;
-            margin-right: 8px;
-        }
-
-        .filter-summary .sort-tag {
+        .control-panel-toggle .sort-tag {
             display: inline-block;
             background: #9e9e9e;
             color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 9px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
         }
 
-        .filter-summary .no-filter {
-            color: #999;
-            /* font-style: italic; */
+        .control-panel-toggle .no-filter {
+            color: #666;
+            font-size: 13px;
         }
 
         /* Ticket List */
@@ -729,12 +703,35 @@
 
         /* Footer */
         .footer {
-            padding: 12px 16px;
+            padding: 10px 16px;
             border-top: 1px solid #e0e0e0;
             text-align: center;
-            font-size: 11px;
-            color: #999;
             background: #fafafa;
+        }
+
+        .btn-export-footer {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 8px 16px;
+            border: 1px solid #21A366;
+            border-radius: 4px;
+            background: #21A366;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-export-footer:hover {
+            background: #1e8f59;
+            border-color: #1e8f59;
+        }
+
+        .btn-export-footer .export-icon {
+            font-weight: bold;
         }
     </style>
 </head>
@@ -748,42 +745,39 @@
                 <div class="logo-subtitle">运维工单浏览器</div>
             </div>
 
-            <!-- Filters -->
-            <div class="filters-section">
-                <div class="filters-content collapsed" id="filtersContent">
-                    <div class="filter-group">
-                        <label class="filter-label">问题类型</label>
-                        <select class="filter-select" id="typeFilter">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="filtering-control collapsed" id="filteringControl">
+                    <div class="selection-group">
+                        <label class="selection-label">问题类型</label>
+                        <select class="selection-select" id="typeFilter">
                             <option value="all">全部</option>
                             {% for t in issue_types %}
                             <option value="{{ t }}">{{ t }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <div class="filter-group">
-                        <label class="filter-label">负责人</label>
-                        <select class="filter-select" id="ownerFilter">
+                    <div class="selection-group">
+                        <label class="selection-label">负责人</label>
+                        <select class="selection-select" id="ownerFilter">
                             <option value="all">全部</option>
                             {% for o in owners %}
                             <option value="{{ o }}">{{ o }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <div class="filter-group">
-                        <label class="filter-label">得分范围</label>
-                        <select class="filter-select" id="scoreFilter">
+                    <div class="selection-group">
+                        <label class="selection-label">得分范围</label>
+                        <select class="selection-select" id="scoreFilter">
                             <option value="all">全部</option>
                             <option value="high">高分 (8-10)</option>
                             <option value="medium">中等 (6-8)</option>
                             <option value="low">低分 (0-6)</option>
                         </select>
                     </div>
-
-                    <div class="filter-group">
-                        <label class="filter-label">审核状态</label>
-                        <select class="filter-select" id="reviewFilter">
+                    <div class="selection-group">
+                        <label class="selection-label">审核状态</label>
+                        <select class="selection-select" id="reviewFilter">
                             <option value="all">全部</option>
                             <option value="通过">通过</option>
                             <option value="不通过">不通过</option>
@@ -792,38 +786,27 @@
                             <option value="pending">未审核</option>
                         </select>
                     </div>
-
-                    <div class="filter-actions">
-                        <button class="btn-control btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除所有过滤条件</button>
-                    </div>
-
-                    <div class="sort-section">
-                        <div class="filter-group">
-                            <label class="filter-label">排序方式</label>
-                            <select class="filter-select" id="sortFilter">
-                                <option value="updateTime-desc">更新时间 ↓</option>
-                                <option value="updateTime-asc">更新时间 ↑</option>
-                                <option value="createTime-desc">创建时间 ↓</option>
-                                <option value="createTime-asc">创建时间 ↑</option>
-                                <option value="id-asc">ID ↑</option>
-                                <option value="id-desc">ID ↓</option>
-                                <option value="score-desc">评分 ↓</option>
-                                <option value="score-asc">评分 ↑</option>
-                            </select>
-                        </div>
-                        <button class="btn-control btn-reset-sort" id="resetSortBtn" onclick="resetSort()" disabled>恢复默认排序方式</button>
-                    </div>
-
-                    <div class="export-section">
-                        <button class="btn-control btn-export" onclick="exportToExcel()">导出到 Excel</button>
-                    </div>
+                    <button class="btn-control btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除所有过滤条件</button>
                 </div>
-                <div class="filter-summary" id="filterSummary">
-                    <span class="no-filter">共 {{ tickets|length }} 条工单</span>
+                <div class="sorting-control collapsed" id="sortingControl">
+                    <div class="selection-group">
+                        <label class="selection-label">排序方式</label>
+                        <select class="selection-select" id="sortFilter">
+                            <option value="updateTime-desc">更新时间 ↓</option>
+                            <option value="updateTime-asc">更新时间 ↑</option>
+                            <option value="createTime-desc">创建时间 ↓</option>
+                            <option value="createTime-asc">创建时间 ↑</option>
+                            <option value="id-asc">ID ↑</option>
+                            <option value="id-desc">ID ↓</option>
+                            <option value="score-desc">评分 ↓</option>
+                            <option value="score-asc">评分 ↑</option>
+                        </select>
+                    </div>
+                    <button class="btn-control btn-reset-sort" id="resetSortBtn" onclick="resetSort()" disabled>恢复默认排序方式</button>
                 </div>
-                <button class="filters-toggle collapsed" id="filtersToggle" onclick="toggleFilters()">
-                    <span id="toggleText">展开控制面板</span>
-                    <span class="arrow">&#9650;</span>
+                <button class="control-panel-toggle collapsed" id="controlPanelToggle" onclick="toggleControlPanel()">
+                    <span class="summary-content" id="filterSummary"><span class="no-filter">共 {{ tickets|length }} 条工单</span></span>
+                    <span class="toggle-icon">▲</span>
                 </button>
             </div>
 
@@ -832,9 +815,11 @@
                 <!-- Tickets will be rendered here -->
             </div>
 
-            <!-- Footer -->
+            <!-- Footer with Export -->
             <div class="footer">
-                GaussDB Operations Knowledge Base
+                <button class="btn-export-footer" onclick="exportToExcel()">
+                    <span class="export-icon">↓</span> 导出 Excel
+                </button>
             </div>
         </div>
 
@@ -858,7 +843,7 @@
             sort: 'updateTime-desc'
         };
         let selectedTicketId = null;
-        let filtersCollapsed = true;
+        let controlPanelCollapsed = true;
 
         // Ticket URL pattern from backend
         const ticketUrlPattern = '{{ ticket_url_pattern }}';
@@ -877,24 +862,21 @@
             handleUrlHash();
         }
 
-        // Toggle filters
-        function toggleFilters() {
-            filtersCollapsed = !filtersCollapsed;
-            const content = document.getElementById('filtersContent');
-            const toggle = document.getElementById('filtersToggle');
-            const text = document.getElementById('toggleText');
-            const summary = document.getElementById('filterSummary');
+        // Toggle control panel
+        function toggleControlPanel() {
+            controlPanelCollapsed = !controlPanelCollapsed;
+            const filteringControl = document.getElementById('filteringControl');
+            const sortingControl = document.getElementById('sortingControl');
+            const toggle = document.getElementById('controlPanelToggle');
 
-            if (filtersCollapsed) {
-                content.classList.add('collapsed');
+            if (controlPanelCollapsed) {
+                filteringControl.classList.add('collapsed');
+                sortingControl.classList.add('collapsed');
                 toggle.classList.add('collapsed');
-                text.textContent = '展开控制面板';
-                summary.classList.add('visible');
             } else {
-                content.classList.remove('collapsed');
+                filteringControl.classList.remove('collapsed');
+                sortingControl.classList.remove('collapsed');
                 toggle.classList.remove('collapsed');
-                text.textContent = '收起控制面板';
-                summary.classList.remove('visible');
             }
         }
 
@@ -922,23 +904,25 @@
 
             // Sort label
             const sortLabels = {
-                'updateTime-desc': '更新时间 ↓',
-                'updateTime-asc': '更新时间 ↑',
-                'createTime-desc': '创建时间 ↓',
-                'createTime-asc': '创建时间 ↑',
+                'updateTime-desc': '更新 ↓',
+                'updateTime-asc': '更新 ↑',
+                'createTime-desc': '创建 ↓',
+                'createTime-asc': '创建 ↑',
                 'id-asc': 'ID ↑',
                 'id-desc': 'ID ↓',
                 'score-desc': '评分 ↓',
                 'score-asc': '评分 ↑'
             };
-            const sortText = `排序: ${sortLabels[currentFilters.sort] || currentFilters.sort}`;
 
             // Build summary
-            let html = `<span class="filter-count">${filteredCount}/${totalCount}</span>`;
+            let html = `<span class="filter-count">${filteredCount} / ${totalCount}</span>`;
             if (tags.length > 0) {
                 html += tags.map(t => `<span class="filter-tag">${t}</span>`).join('');
             }
-            html += `<span class="sort-tag">${sortText}</span>`;
+            // Only show sort tag if not default
+            if (currentFilters.sort !== 'updateTime-desc') {
+                html += `<span class="sort-tag">${sortLabels[currentFilters.sort]}</span>`;
+            }
             summary.innerHTML = html;
         }
 
@@ -1535,6 +1519,10 @@
 
         // Export to Excel
         function exportToExcel() {
+            const filteredCount = getFilteredTickets().length;
+            if (!confirm(`是否要导出 ${filteredCount} 条问题单评审数据？`)) {
+                return;
+            }
             const params = new URLSearchParams();
             params.set('type', currentFilters.type);
             params.set('owner', currentFilters.owner);
