@@ -113,46 +113,34 @@
             margin-bottom: 12px;
         }
 
-        .btn-clear, .btn-reset-sort {
+        /* Control Panel Buttons - Unified Style */
+        .btn-control {
             width: 100%;
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 4px;
             font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .btn-clear {
-            border: 1px solid #dc3545;
-            background: white;
-            color: #dc3545;
-        }
-
-        .btn-clear:hover:not(:disabled) {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-clear:disabled {
+        .btn-control:disabled {
             opacity: 0.4;
             cursor: not-allowed;
+        }
+
+        .btn-clear, .btn-reset-sort {
+            border: 1px solid #667eea;
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-clear:hover:not(:disabled), .btn-reset-sort:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
         }
 
         .btn-reset-sort {
-            border: 1px solid #6c757d;
-            background: white;
-            color: #6c757d;
             margin-top: 8px;
-        }
-
-        .btn-reset-sort:hover:not(:disabled) {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-reset-sort:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
         }
 
         .sort-section {
@@ -167,20 +155,14 @@
         }
 
         .btn-export {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #28a745;
-            border-radius: 4px;
-            background: #28a745;
+            border: 1px solid #21A366;
+            background: #21A366;
             color: white;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
         }
 
         .btn-export:hover {
-            background: #218838;
-            border-color: #218838;
+            background: #1e8f59;
+            border-color: #1e8f59;
         }
 
         /* Toggle Button */
@@ -244,7 +226,7 @@
 
         .filter-summary .sort-tag {
             display: inline-block;
-            background: #6c757d;
+            background: #9e9e9e;
             color: white;
             padding: 2px 8px;
             border-radius: 10px;
@@ -310,7 +292,7 @@
         }
 
         .review-icon.none {
-            color: #bbb;
+            color: #9e9e9e;
         }
 
         .review-icon.expired {
@@ -356,15 +338,15 @@
         }
 
         .score-value.high {
-            color: #2e7d32;
+            color: #4caf50;
         }
 
         .score-value.medium {
-            color: #e65100;
+            color: #ff9800;
         }
 
         .score-value.low {
-            color: #c62828;
+            color: #f44336;
         }
 
         /* Right Panel - Detail View */
@@ -462,19 +444,19 @@
         }
 
         .score-badge.high {
-            background: rgba(46, 125, 50, 0.2);
+            background: rgba(76, 175, 80, 0.2);
             border: 2px solid #4caf50;
             color: #4caf50;
         }
 
         .score-badge.medium {
-            background: rgba(230, 81, 0, 0.2);
+            background: rgba(255, 152, 0, 0.2);
             border: 2px solid #ff9800;
             color: #ff9800;
         }
 
         .score-badge.low {
-            background: rgba(198, 40, 40, 0.2);
+            background: rgba(244, 67, 54, 0.2);
             border: 2px solid #f44336;
             color: #f44336;
         }
@@ -671,12 +653,11 @@
             list-style: none;
         }
 
-        .step-item {
+        .step-item, .solution-item {
             background: #252526;
             padding: 14px 16px;
             border-radius: 4px;
             margin-bottom: 10px;
-            /* border-left: 3px solid #dcdcaa; */
         }
 
         .step-number {
@@ -685,7 +666,7 @@
             height: 24px;
             line-height: 24px;
             text-align: center;
-            background: #dcdcaa;
+            background: #569cd6;
             color: #1e1e1e;
             border-radius: 50%;
             font-size: 12px;
@@ -694,7 +675,7 @@
         }
 
         .step-title {
-            color: #dcdcaa;
+            color: #569cd6;
             font-weight: 600;
             margin-bottom: 8px;
         }
@@ -707,23 +688,6 @@
 
         .step-detail .label {
             color: #9cdcfe;
-        }
-
-        /* Solution Steps */
-        .solution-item {
-            background: #252526;
-            padding: 14px 16px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            /* border-left: 3px solid #6a9955; */
-        }
-
-        .solution-item .step-number {
-            background: #6a9955;
-        }
-
-        .solution-item .step-title {
-            color: #6a9955;
         }
 
         .command-block {
@@ -830,7 +794,7 @@
                     </div>
 
                     <div class="filter-actions">
-                        <button class="btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除所有过滤条件</button>
+                        <button class="btn-control btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除所有过滤条件</button>
                     </div>
 
                     <div class="sort-section">
@@ -847,11 +811,11 @@
                                 <option value="score-asc">评分 ↑</option>
                             </select>
                         </div>
-                        <button class="btn-reset-sort" id="resetSortBtn" onclick="resetSort()" disabled>恢复默认排序方式</button>
+                        <button class="btn-control btn-reset-sort" id="resetSortBtn" onclick="resetSort()" disabled>恢复默认排序方式</button>
                     </div>
 
                     <div class="export-section">
-                        <button class="btn-export" onclick="exportToExcel()">导出到 Excel</button>
+                        <button class="btn-control btn-export" onclick="exportToExcel()">导出到 Excel</button>
                     </div>
                 </div>
                 <div class="filter-summary" id="filterSummary">
