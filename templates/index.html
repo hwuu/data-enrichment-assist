@@ -72,20 +72,23 @@
         }
 
         .filter-group {
-            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         .filter-label {
             font-size: 12px;
             font-weight: 600;
             color: #666;
-            margin-bottom: 6px;
-            display: block;
+            white-space: nowrap;
+            min-width: 60px;
         }
 
         .filter-select {
-            width: 100%;
-            padding: 8px 10px;
+            flex: 1;
+            padding: 6px 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 13px;
@@ -106,21 +109,23 @@
         }
 
         .filter-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
+            margin-top: 8px;
+            margin-bottom: 12px;
         }
 
-        .btn-clear {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #dc3545;
+        .btn-clear, .btn-reset-sort {
+            width: 100%;
+            padding: 6px 12px;
             border-radius: 4px;
-            background: white;
-            color: #dc3545;
             font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+        }
+
+        .btn-clear {
+            border: 1px solid #dc3545;
+            background: white;
+            color: #dc3545;
         }
 
         .btn-clear:hover:not(:disabled) {
@@ -131,6 +136,28 @@
         .btn-clear:disabled {
             opacity: 0.4;
             cursor: not-allowed;
+        }
+
+        .btn-reset-sort {
+            border: 1px solid #6c757d;
+            background: white;
+            color: #6c757d;
+            margin-top: 8px;
+        }
+
+        .btn-reset-sort:hover:not(:disabled) {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-reset-sort:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .sort-section {
+            border-top: 1px solid #eee;
+            padding-top: 12px;
         }
 
         /* Toggle Button */
@@ -187,7 +214,7 @@
 
         .filter-summary .no-filter {
             color: #999;
-            font-style: italic;
+            /* font-style: italic; */
         }
 
         /* Ticket List */
@@ -744,22 +771,25 @@
                         </select>
                     </div>
 
-                    <div class="filter-group">
-                        <label class="filter-label">排序方式</label>
-                        <select class="filter-select" id="sortFilter">
-                            <option value="updateTime-desc">更新时间 ↓</option>
-                            <option value="updateTime-asc">更新时间 ↑</option>
-                            <option value="createTime-desc">创建时间 ↓</option>
-                            <option value="createTime-asc">创建时间 ↑</option>
-                            <option value="id-asc">ID ↑</option>
-                            <option value="id-desc">ID ↓</option>
-                            <option value="score-desc">评分 ↓</option>
-                            <option value="score-asc">评分 ↑</option>
-                        </select>
+                    <div class="filter-actions">
+                        <button class="btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除所有过滤条件</button>
                     </div>
 
-                    <div class="filter-actions">
-                        <button class="btn-clear" id="clearBtn" onclick="clearFilters()" disabled>清除过滤器</button>
+                    <div class="sort-section">
+                        <div class="filter-group">
+                            <label class="filter-label">排序方式</label>
+                            <select class="filter-select" id="sortFilter">
+                                <option value="updateTime-desc">更新时间 ↓</option>
+                                <option value="updateTime-asc">更新时间 ↑</option>
+                                <option value="createTime-desc">创建时间 ↓</option>
+                                <option value="createTime-asc">创建时间 ↑</option>
+                                <option value="id-asc">ID ↑</option>
+                                <option value="id-desc">ID ↓</option>
+                                <option value="score-desc">评分 ↓</option>
+                                <option value="score-asc">评分 ↑</option>
+                            </select>
+                        </div>
+                        <button class="btn-reset-sort" id="resetSortBtn" onclick="resetSort()" disabled>恢复默认排序方式</button>
                     </div>
                 </div>
                 <button class="filters-toggle collapsed" id="filtersToggle" onclick="toggleFilters()">
@@ -1428,17 +1458,26 @@
 
         // Update clear button state
         function updateClearButton() {
-            const btn = document.getElementById('clearBtn');
-            btn.disabled = !hasActiveFilters();
+            document.getElementById('clearBtn').disabled = !hasActiveFilters();
+            document.getElementById('resetSortBtn').disabled = currentFilters.sort === 'updateTime-desc';
         }
 
-        // Clear all filters
+        // Clear all filters (not sort)
         function clearFilters() {
-            currentFilters = { type: 'all', owner: 'all', score: 'all', review: 'all', sort: 'updateTime-desc' };
+            currentFilters.type = 'all';
+            currentFilters.owner = 'all';
+            currentFilters.score = 'all';
+            currentFilters.review = 'all';
             document.getElementById('typeFilter').value = 'all';
             document.getElementById('ownerFilter').value = 'all';
             document.getElementById('scoreFilter').value = 'all';
             document.getElementById('reviewFilter').value = 'all';
+            updateFilters();
+        }
+
+        // Reset sort to default
+        function resetSort() {
+            currentFilters.sort = 'updateTime-desc';
             document.getElementById('sortFilter').value = 'updateTime-desc';
             updateFilters();
         }
