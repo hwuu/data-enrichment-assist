@@ -73,6 +73,10 @@ async def api_save_review(process_id: str, request: Request):
     # Use `or ""` to handle both missing keys and explicit null values
     conclusion = body.get("conclusion") or ""
     content = body.get("content") or ""
+    # Ensure content is never empty (database has NOT NULL constraint)
+    # Use "-" as placeholder for "通过" reviews with no comment
+    if not content:
+        content = "-"
     review = db.save_ticket_review(process_id, conclusion, content)
     return review
 
