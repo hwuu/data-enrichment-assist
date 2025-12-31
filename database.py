@@ -242,6 +242,12 @@ class SQLiteDatabase(DatabaseInterface):
             cursor = conn.cursor()
             now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
+            # Ensure content is never None (NOT NULL constraint in database)
+            if content is None:
+                content = ""
+            if conclusion is None:
+                conclusion = ""
+
             # Check if review exists
             cursor.execute('SELECT id, createTime FROM ticket_review WHERE processId = ?', (process_id,))
             existing = cursor.fetchone()
@@ -437,6 +443,12 @@ class PostgreSQLDatabase(DatabaseInterface):
             self._ensure_review_table(conn)
             cursor = conn.cursor()
             now = datetime.now(timezone.utc)
+
+            # Ensure content is never None (NOT NULL constraint in database)
+            if content is None:
+                content = ""
+            if conclusion is None:
+                conclusion = ""
 
             # Check if review exists
             cursor.execute('SELECT id, createtime FROM ticket_review WHERE processid = %s', (process_id,))

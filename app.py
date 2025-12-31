@@ -70,8 +70,9 @@ async def api_get_review(process_id: str):
 async def api_save_review(process_id: str, request: Request):
     """Save review for a ticket."""
     body = await request.json()
-    conclusion = body.get("conclusion", "")
-    content = body.get("content", "")
+    # Use `or ""` to handle both missing keys and explicit null values
+    conclusion = body.get("conclusion") or ""
+    content = body.get("content") or ""
     review = db.save_ticket_review(process_id, conclusion, content)
     return review
 
