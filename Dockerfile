@@ -8,7 +8,7 @@
 #     -v /path/to/gaussdb_ops.db:/app/gaussdb_ops.db \
 #     gaussdb-ops-viewer
 #
-# 使用 PostgreSQL:
+# 使用 PostgreSQL + 外部链接:
 #   docker run -d -p 3011:3011 \
 #     -e DB_TYPE=postgresql \
 #     -e DB_HOST=your-db-host \
@@ -16,6 +16,7 @@
 #     -e DB_NAME=gaussdb_ops \
 #     -e DB_USER=postgres \
 #     -e DB_PASSWORD=your-password \
+#     -e TICKET_URL_PATTERN="http://your-system/ticket/{processId}" \
 #     gaussdb-ops-viewer
 
 #FROM python:3.11-slim
@@ -39,6 +40,7 @@ ENV DB_PATH=/app/gaussdb_ops.db
 ENV SERVER_HOST=0.0.0.0
 ENV SERVER_PORT=3011
 ENV WORKERS=4
+ENV TICKET_URL_PATTERN=""
 ENV PYTHONUNBUFFERED=1
 
 # 暴露端口

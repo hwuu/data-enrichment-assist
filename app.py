@@ -86,7 +86,8 @@ async def api_export(
 ):
     """Export tickets to Excel with filters and sorting."""
     from openpyxl import Workbook
-    from openpyxl.styles import Font, Alignment, PatternFill
+    from openpyxl.styles import Font, Alignment
+    from openpyxl.worksheet.table import Table, TableStyleInfo
 
     tickets = db.get_ticket_list()
 
@@ -138,14 +139,8 @@ async def api_export(
 
     # Headers
     headers = ["工单ID", "URL", "问题类型", "负责人", "问题描述", "得分", "审核结论", "审核意见"]
-    header_fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF")
-
     for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=header)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center")
+        ws.cell(row=1, column=col, value=header)
 
     # Data rows
     for row_idx, ticket in enumerate(filtered, 2):
@@ -160,7 +155,12 @@ async def api_export(
         content = rev.get("content", "") if rev else ""
 
         ws.cell(row=row_idx, column=1, value=ticket["processId"])
-        ws.cell(row=row_idx, column=2, value=url)
+        url_cell = ws.cell(row=row_idx, column=2)
+        if url:
+            url_cell.value = "🔗"
+            url_cell.hyperlink = url
+            url_cell.font = Font(color="0563C1")
+            url_cell.alignment = Alignment(horizontal="center")
         ws.cell(row=row_idx, column=3, value=ticket["issueType"])
         ws.cell(row=row_idx, column=4, value=ticket["owner"])
         ws.cell(row=row_idx, column=5, value=ticket["problem"])
@@ -169,14 +169,32 @@ async def api_export(
         ws.cell(row=row_idx, column=8, value=content)
 
     # Adjust column widths
-    ws.column_dimensions["A"].width = 15
-    ws.column_dimensions["B"].width = 40
-    ws.column_dimensions["C"].width = 12
-    ws.column_dimensions["D"].width = 10
-    ws.column_dimensions["E"].width = 50
-    ws.column_dimensions["F"].width = 8
-    ws.column_dimensions["G"].width = 10
-    ws.column_dimensions["H"].width = 40
+    # Fixed width for 问题描述(E) and 审核意见(H): 80 characters
+    ws.column_dimensions["E"].width = 80
+    ws.column_dimensions["H"].width = 80
+
+    # Auto-fit other columns based on content
+    for col_letter in ["A", "B", "C", "D", "F", "G"]:
+        max_length = 0
+        for cell in ws[col_letter]:
+            if cell.value:
+                cell_len = len(str(cell.value))
+                if cell_len > max_length:
+                    max_length = cell_len
+        ws.column_dimensions[col_letter].width = max(max_length + 2, 4)
+
+    # Create table for filter/sort in Excel
+    if filtered:
+        table_range = f"A1:H{len(filtered) + 1}"
+        table = Table(displayName="TicketTable", ref=table_range)
+        table.tableStyleInfo = TableStyleInfo(
+            name="TableStyleMedium9",
+            showFirstColumn=False,
+            showLastColumn=False,
+            showRowStripes=True,
+            showColumnStripes=False
+        )
+        ws.add_table(table)
 
     # Save to buffer
     buffer = io.BytesIO()
